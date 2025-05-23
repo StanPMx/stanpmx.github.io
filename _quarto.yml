@@ -4,16 +4,16 @@ project:
 website:
   title: "Bayes PMx"
   google-analytics: "G-25014Q9W34"
-  site-url: "https://cbdavis33.github.io"
+  site-url: "https://stanpmx.github.io"
   page-footer:
     right: "&copy; GNU GPL v3.0"
     left: 
       - icon: github
-        href: https://github.com/cbdavis33/cbdavis33.github.io
-        # text: "https://github.com/BayesPMx/cbdavis33.github.io"
+        href: https://github.com/StanPMx/stanpmx.github.io
+        # text: "https://github.com/BayesPMx/stanpmx.github.io"
       - icon: globe
-        href: https://cbdavis33.github.io
-        # text: "https://cbdavis33.github.io"
+        href: https://stanpmx.github.io
+        # text: "https://stanpmx.github.io"
       - icon: github
         href: https://github.com/cbdavis33/stanpmx-library
         text: "StanPMx Library"
