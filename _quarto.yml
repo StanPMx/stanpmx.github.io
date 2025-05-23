@@ -29,9 +29,9 @@ format:
     page-layout: article
     respect-user-color-scheme: true
     theme:
-      light: [sandstone, theme-light.scss]
-      dark: [sandstone, theme-dark.scss]
-    css: quarto_styles.css
+      light: [sandstone, Aesthetics/theme-light.scss]
+      dark: [sandstone, Aesthetics/theme-dark.scss]
+    css: Aesthetics/quarto_styles.css
     toc: true
 
 editor: visual
