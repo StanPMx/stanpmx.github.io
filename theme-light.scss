@@ -1,0 +1,32 @@
+/*-- scss:uses --*/
+
+@use "theme-colors" as *;
+
+/*-- scss:defaults --*/
+
+$old-quarto-body-bg: #FEFBF2;
+$body-bg: #F9F6EE;
+// $body-bg: #F9F6EE;
+
+$quarto-body-color: $navy-blue;
+$quarto-text-muted: $warm-gray;
+
+$bs-body-color: $navy-blue;
+$bs-dark: $navy-blue;
+$bs-dark-warm: $warm-gray;
+
+$navbar-fg: $warm-beige;
+$navbar-bg: $navy-blue;
+$sidebar-bg: $palest-beige;
+$sidebar-fg: $navy-blue;
+
+// Re-export the colors as CSS variables
+:root {
+  --stan-bg: #{$palest-beige};
+  --stan-highlight: #{$warm-beige};
+  --stan-secondary: #{$aquatic-blue};
+  --stan-dark: #{$navy-blue};
+  --stan-hero: #{$warm-beige};
+  --stan-hero-bg: #{$navy-blue};
+
+}

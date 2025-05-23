@@ -1,0 +1,37 @@
+project:
+  type: website
+
+website:
+  title: "Bayes PMx"
+  google-analytics: "G-25014Q9W34"
+  site-url: "https://cbdavis33.github.io"
+  page-footer:
+    right: "&copy; GNU GPL v3.0"
+    left: 
+      - icon: github
+        href: https://github.com/cbdavis33/cbdavis33.github.io
+        # text: "https://github.com/BayesPMx/cbdavis33.github.io"
+      - icon: globe
+        href: https://cbdavis33.github.io
+        # text: "https://cbdavis33.github.io"
+      - icon: github
+        href: https://github.com/cbdavis33/stanpmx-library
+        text: "StanPMx Library"
+    background: "#AAB1B3"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Home
+      - about.qmd
+
+format:
+  html:
+    page-layout: article
+    respect-user-color-scheme: true
+    theme:
+      light: [sandstone, theme-light.scss]
+      dark: [sandstone, theme-dark.scss]
+    css: quarto_styles.css
+    toc: true
+
+editor: visual
