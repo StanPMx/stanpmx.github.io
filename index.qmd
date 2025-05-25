@@ -11,5 +11,3 @@ We have presented a Bayesian tutorial at ACoP14 and based on the overwhelming in
 We provide tutorials and code that are both theoretical and practical in nature. We believe that this resource will give users in the PMx community a knowledge platform to implement a fully Bayesian workflow that involves model fitting, model diagnostics, model selection, post-processing, as well as running simulations for any model that they desire.
 
 While the tutorials and implementation herein will focus mainly on R interfacing with Stan/Torsten, we encourage tutorial and code contributions in any language from subject matter experts as well as the user community. Please reach out to us if you would like to contribute to this resource.
-
-Stay tuned for a major update!
