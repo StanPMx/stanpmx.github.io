@@ -5,6 +5,9 @@ website:
   title: "Stan PMx"
   google-analytics: "G-0B50RXDB1S"
   site-url: "https://stanpmx.github.io"
+  announcement: 
+    content: "Stay tuned for a major update and come to StanBio Connect on May 30, 2025!" 
+    position: below-navbar 
   page-footer:
     right: "&copy; GNU GPL v3.0"
     left: 
@@ -18,11 +21,20 @@ website:
         href: https://github.com/cbdavis33/stanpmx-library
         text: "StanPMx Library"
     background: "#AAB1B3"
-  navbar:
-    left:
-      - href: index.qmd
-        text: Home
-      # - about.qmd
+  # navbar:
+  #   left:
+  #     - href: index.qmd
+  #       text: Home
+  #     # - about.qmd
+  sidebar: 
+    search: true
+    pinned: true
+    logo: "Images/stanpmx_logo.png"
+    contents:
+      - text: "Home"
+        file: index.qmd
+      # - text: "About"
+      #   file: about.qmd
 
 format:
   html:

@@ -17,8 +17,11 @@ $bs-dark-warm: $warm-gray;
 
 $navbar-fg: $warm-beige;
 $navbar-bg: $navy-blue;
-$sidebar-bg: $palest-beige;
-$sidebar-fg: $navy-blue;
+// $sidebar-bg: $palest-beige;
+// $sidebar-bg: #EA0113;
+// $sidebar-fg: $navy-blue;
+$sidebar-bg: #FFFFFF;
+
 
 // Re-export the colors as CSS variables
 :root {
