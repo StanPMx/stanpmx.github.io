@@ -1,11 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://stanpmx.github.io/about.html</loc>
-    <lastmod>2025-05-23T22:34:43.193Z</lastmod>
+    <loc>https://stanpmx.github.io/index.html</loc>
+    <lastmod>2025-05-26T01:21:31.656Z</lastmod>
   </url>
   <url>
-    <loc>https://stanpmx.github.io/index.html</loc>
-    <lastmod>2025-05-25T17:27:36.872Z</lastmod>
+    <loc>https://stanpmx.github.io/Content/Tutorials/tutorials.html</loc>
+    <lastmod>2025-05-26T01:21:31.654Z</lastmod>
+  </url>
+  <url>
+    <loc>https://stanpmx.github.io/Content/About/about.html</loc>
+    <lastmod>2025-05-26T01:21:31.653Z</lastmod>
+  </url>
+  <url>
+    <loc>https://stanpmx.github.io/Content/Fundamentals/fundamentals.html</loc>
+    <lastmod>2025-05-26T01:21:31.653Z</lastmod>
+  </url>
+  <url>
+    <loc>https://stanpmx.github.io/Content/Fundamentals/conjugate_priors.html</loc>
+    <lastmod>2025-05-26T01:21:31.653Z</lastmod>
+  </url>
+  <url>
+    <loc>https://stanpmx.github.io/Content/Fundamentals/intro_to_bayes.html</loc>
+    <lastmod>2025-05-26T01:21:31.653Z</lastmod>
+  </url>
+  <url>
+    <loc>https://stanpmx.github.io/Content/Fundamentals/intro_to_mcmc.html</loc>
+    <lastmod>2025-05-26T01:21:31.654Z</lastmod>
+  </url>
+  <url>
+    <loc>https://stanpmx.github.io/Content/How_To/howto.html</loc>
+    <lastmod>2025-05-26T01:21:31.654Z</lastmod>
+  </url>
+  <url>
+    <loc>https://stanpmx.github.io/Content/Reference/reference.html</loc>
+    <lastmod>2025-05-26T01:21:31.654Z</lastmod>
   </url>
 </urlset>
