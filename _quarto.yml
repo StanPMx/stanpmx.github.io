@@ -5,37 +5,123 @@ website:
   title: "Stan PMx"
   google-analytics: "G-0B50RXDB1S"
   site-url: "https://stanpmx.github.io"
+  bread-crumbs: true
+  back-to-top-navigation: true
   announcement: 
-    content: "Stay tuned for a major update and come to StanBio Connect on May 30, 2025!" 
+    content: "Stay tuned for a major update and come to [StanBio Connect](https://stanbio.org/) on May 30, 2025!" 
     position: below-navbar 
-  page-footer:
-    right: "&copy; GNU GPL v3.0"
-    left: 
-      - icon: github
-        href: https://github.com/StanPMx/stanpmx.github.io
-        # text: "https://github.com/BayesPMx/stanpmx.github.io"
-      - icon: globe
-        href: https://stanpmx.github.io
-        # text: "https://stanpmx.github.io"
+  # page-footer:
+  #   right: "&copy; GNU GPL v3.0"
+  #   left: 
+  #     - icon: github
+  #       href: https://github.com/StanPMx/stanpmx.github.io
+  #       # text: "https://github.com/BayesPMx/stanpmx.github.io"
+  #     - icon: globe
+  #       href: https://stanpmx.github.io
+  #       # text: "https://stanpmx.github.io"
+  #     - icon: github
+  #       href: https://github.com/cbdavis33/stanpmx-library
+  #       text: "StanPMx Library"
+  #   background: "#AAB1B3"
+  navbar:
+    search: true
+    logo: "Images/stanpmx_logo_2.png"
+    right:
       - icon: github
         href: https://github.com/cbdavis33/stanpmx-library
         text: "StanPMx Library"
-    background: "#AAB1B3"
-  # navbar:
-  #   left:
-  #     - href: index.qmd
-  #       text: Home
-  #     # - about.qmd
-  sidebar: 
-    search: true
-    pinned: true
-    logo: "Images/stanpmx_logo.png"
-    contents:
-      - text: "Home"
-        file: index.qmd
-      # - text: "About"
-      #   file: about.qmd
+    left:
+      - text: Home
+        href: index.qmd
+      - text: "Fundamentals"
+        href: Content/Fundamentals/fundamentals.qmd
+      - text: "Tutorials"
+        href: Content/Tutorials/tutorials.qmd
+      - text: "How-To"
+        href: Content/How_To/howto.qmd
+      - text: "Reference"
+        href: Content/Reference/reference.qmd
+      - text: About
+        href: Content/About/about.qmd
+      # - text: Tutorials
+      #   menu:
+      #     - text: General Bayes
+      #       # menu:
+      #       #   - Intro to Bayes
+      #       #   - Conjugate Priors
+      #     - text: MCMC
+      #     - text: Stan
+  
+  sidebar:
+    # - title: "Fundamentals"
+    #   pinned: true
+    #   style: "docked"
+    #   logo: "Images/stanpmx_logo.png"
+    #   contents:
+    #     - text: "Fundamentals"
+    #       href: Content/Fundamentals/fundamentals.qmd
+    #       title: "fun duh mental"
+    #     - text: "Intro to Bayes"
+    #       href: Content/Fundamentals/intro_to_bayes.qmd
+    #     - text: "Conjugate Priors"
+    #       href: Content/Fundamentals/conjugate_priors.qmd
+    #     - text: "Intro to MCMC"
+    #       href: Content/Fundamentals/intro_to_mcmc.qmd
+    - title: "Fundamentals"
+      pinned: true
+      style: "docked"
+      logo: "Images/stanpmx_logo.png"
+      contents:
+        - text: "Fundamentals"
+          href: Content/Fundamentals/fundamentals.qmd
+          # text: "fun duh mental"
+        - section: "Intro to Bayes"
+          contents:
+            - text: "Basics"
+              href: Content/Fundamentals/intro_to_bayes.qmd
+            - text: "Conjugate Priors"
+              href: Content/Fundamentals/conjugate_priors.qmd
+        - text: "Intro to MCMC"
+          href: Content/Fundamentals/intro_to_mcmc.qmd
+          
+    - title: "Tutorials"
+      contents:
+        - text: "Tutorials"
+          href: Content/Tutorials/tutorials.qmd
 
+    - title: "How-To"
+      contents:
+        - text: "How-to Guides"
+          href: Content/How_To/howto.qmd
+        # navigation items
+
+    - title: "Reference"
+      contents:
+        - Content/Reference/reference.qmd
+        # navigation items
+        
+    - title: "About"
+      contents:
+        - Content/About/about.qmd
+        # navigation items
+  # sidebar:
+  #   pinned: true
+  #   style: "docked"
+  #   logo: "Images/stanpmx_logo.png"
+  #   contents:
+  #     - text: Home
+  #       href: index.qmd
+  #     - text: About
+  #       href: about.qmd
+  #     - text: Tutorials
+  #       menu: 
+  #         - text: General Bayes
+  #           menu: 
+  #             - Intro to Bayes
+  #             - Conjugate Priors
+  #         - text: MCMC
+  #         - text: Stan
+  
 format:
   html:
     page-layout: article

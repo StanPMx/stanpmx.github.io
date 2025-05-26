@@ -1,0 +1,13 @@
+---
+title: "Conjugate Priors"
+---
+
+```{r}
+#| echo: false
+#| output: false
+
+library(tidyverse)
+```
+
+This is an intro to conjugate priors
+

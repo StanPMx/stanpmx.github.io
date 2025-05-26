@@ -1,0 +1,34 @@
+---
+title: "About"
+---
+
+```{r}
+#| echo: false
+#| output: false
+
+library(tidyverse)
+```
+
+
+About this site
+
+```{r}
+1 + 1
+```
+
+Add some stuff
+
+```{r}
+mtcars
+```
+
+Make a plot
+
+```{r}
+mtcars %>% 
+  ggplot() +
+  geom_point(aes(x = hp, y = mpg, color = cyl)) + 
+  theme_bw()
+```
+
+

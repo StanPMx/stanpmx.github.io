@@ -1,0 +1,14 @@
+---
+title: "Introduction to the Basics of Bayesian Methods"
+---
+
+```{r}
+#| echo: false
+#| output: false
+
+library(tidyverse)
+```
+
+This is an intro to the basics. We'll do some stuff and mention conjugate priors
+and then put a [link to that section](/Content/Fundamentals/conjugate_priors.qmd)
+
