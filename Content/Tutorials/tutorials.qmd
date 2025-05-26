@@ -1,0 +1,13 @@
+---
+title: "Tutorials"
+---
+
+```{r}
+#| echo: false
+#| output: false
+
+library(tidyverse)
+```
+
+There's some tutorials on this site
+

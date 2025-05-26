@@ -1,0 +1,13 @@
+---
+title: "Intro to MCMC"
+---
+
+```{r}
+#| echo: false
+#| output: false
+
+library(tidyverse)
+```
+
+This is an intro to Markov Chain Monte Carlo (MCMC)
+

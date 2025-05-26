@@ -1,0 +1,6 @@
+---
+title: "Fundamentals"
+format: html
+---
+
+Here are some basic fundamentals to go through.
