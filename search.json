@@ -11,55 +11,976 @@
     "href": "Content/Tutorials/tutorials.html",
     "title": "Tutorials",
     "section": "",
-    "text": "There’s some tutorials on this site\n\n\n\n Back to top"
+    "text": "There’s some tutorials on this site\n\n\n\n Back to top",
+    "crumbs": [
+      "Tutorials"
+    ]
   },
   {
-    "objectID": "Content/About/about.html",
-    "href": "Content/About/about.html",
-    "title": "About",
+    "objectID": "Content/Tutorials/Stan/handling_censored_data.html",
+    "href": "Content/Tutorials/Stan/handling_censored_data.html",
+    "title": "Handling Censored Data",
     "section": "",
-    "text": "About this site\n\n1 + 1\n\n[1] 2\n\n\nAdd some stuff\n\nmtcars\n\n                     mpg cyl  disp  hp drat    wt  qsec vs am gear carb\nMazda RX4           21.0   6 160.0 110 3.90 2.620 16.46  0  1    4    4\nMazda RX4 Wag       21.0   6 160.0 110 3.90 2.875 17.02  0  1    4    4\nDatsun 710          22.8   4 108.0  93 3.85 2.320 18.61  1  1    4    1\nHornet 4 Drive      21.4   6 258.0 110 3.08 3.215 19.44  1  0    3    1\nHornet Sportabout   18.7   8 360.0 175 3.15 3.440 17.02  0  0    3    2\nValiant             18.1   6 225.0 105 2.76 3.460 20.22  1  0    3    1\nDuster 360          14.3   8 360.0 245 3.21 3.570 15.84  0  0    3    4\nMerc 240D           24.4   4 146.7  62 3.69 3.190 20.00  1  0    4    2\nMerc 230            22.8   4 140.8  95 3.92 3.150 22.90  1  0    4    2\nMerc 280            19.2   6 167.6 123 3.92 3.440 18.30  1  0    4    4\nMerc 280C           17.8   6 167.6 123 3.92 3.440 18.90  1  0    4    4\nMerc 450SE          16.4   8 275.8 180 3.07 4.070 17.40  0  0    3    3\nMerc 450SL          17.3   8 275.8 180 3.07 3.730 17.60  0  0    3    3\nMerc 450SLC         15.2   8 275.8 180 3.07 3.780 18.00  0  0    3    3\nCadillac Fleetwood  10.4   8 472.0 205 2.93 5.250 17.98  0  0    3    4\nLincoln Continental 10.4   8 460.0 215 3.00 5.424 17.82  0  0    3    4\nChrysler Imperial   14.7   8 440.0 230 3.23 5.345 17.42  0  0    3    4\nFiat 128            32.4   4  78.7  66 4.08 2.200 19.47  1  1    4    1\nHonda Civic         30.4   4  75.7  52 4.93 1.615 18.52  1  1    4    2\nToyota Corolla      33.9   4  71.1  65 4.22 1.835 19.90  1  1    4    1\nToyota Corona       21.5   4 120.1  97 3.70 2.465 20.01  1  0    3    1\nDodge Challenger    15.5   8 318.0 150 2.76 3.520 16.87  0  0    3    2\nAMC Javelin         15.2   8 304.0 150 3.15 3.435 17.30  0  0    3    2\nCamaro Z28          13.3   8 350.0 245 3.73 3.840 15.41  0  0    3    4\nPontiac Firebird    19.2   8 400.0 175 3.08 3.845 17.05  0  0    3    2\nFiat X1-9           27.3   4  79.0  66 4.08 1.935 18.90  1  1    4    1\nPorsche 914-2       26.0   4 120.3  91 4.43 2.140 16.70  0  1    5    2\nLotus Europa        30.4   4  95.1 113 3.77 1.513 16.90  1  1    5    2\nFord Pantera L      15.8   8 351.0 264 4.22 3.170 14.50  0  1    5    4\nFerrari Dino        19.7   6 145.0 175 3.62 2.770 15.50  0  1    5    6\nMaserati Bora       15.0   8 301.0 335 3.54 3.570 14.60  0  1    5    8\nVolvo 142E          21.4   4 121.0 109 4.11 2.780 18.60  1  1    4    2\n\n\nMake a plot\n\nmtcars %&gt;% \n  ggplot() +\n  geom_point(aes(x = hp, y = mpg, color = cyl)) + \n  theme_bw()\n\n\n\n\n\n\n\n\n\n\n\n Back to top"
+    "text": "Oftentimes, we have observations that are below the limit of quantification (BLOQ), meaning that the assay has only been validated down to a certain value, (the lower limit of quantification, LLOQ). A paper by Stuart Beal goes through 7 methods of handling this BLOQ data in NONMEM. A more recent paper introduces two methods that inflate the residual error for BLOQ values.\nIn my experience, I’ve seen M1 (dropping any BLOQ values completely), M5 (replace BLOQ values with \\(LLOQ/2\\)), and M6 (in a series of consecutive BLOQ values, impute the BLOQ value closes to the maximum with \\(LLOQ/2\\) and drop the rest) most commonly in the pharmacometrics world. M3 (treat the BLOQ values as left-censored data) is very close to being technically correct (it is tecnically for lognormal error models) and is the gold standard, producing less-biased results than the above imputation methods, but it often has trouble converging with optimization methods. M4 (treat the BLOQ values as left-censored data and truncated below at 0) is the most technically correct, but I’ve never seen a single usage in practice. I tried it in NONMEM once, and it was a disaster.\nAs mentioned, M3 and M4 suffer from numerical issues with optimization methods. However, there are no such issues when performing MCMC sampling in Stan, so I write all of my models to use M4 if the error model is a distribution that is typically unbounded (Gaussian, Student’s-t, …), and M3 if the error model is naturally bounded below at 0 (lognormal - M3 and M4 are equivalent in this case).",
+    "crumbs": [
+      "Tutorials",
+      "Stan",
+      "Handling Censored Data"
+    ]
   },
   {
-    "objectID": "Content/Fundamentals/fundamentals.html",
-    "href": "Content/Fundamentals/fundamentals.html",
-    "title": "Fundamentals",
+    "objectID": "Content/Tutorials/Stan/handling_censored_data.html#data-below-the-limit-of-quantification",
+    "href": "Content/Tutorials/Stan/handling_censored_data.html#data-below-the-limit-of-quantification",
+    "title": "Handling Censored Data",
     "section": "",
-    "text": "Here are some basic fundamentals to go through.\n\n\n\n Back to top"
+    "text": "Oftentimes, we have observations that are below the limit of quantification (BLOQ), meaning that the assay has only been validated down to a certain value, (the lower limit of quantification, LLOQ). A paper by Stuart Beal goes through 7 methods of handling this BLOQ data in NONMEM. A more recent paper introduces two methods that inflate the residual error for BLOQ values.\nIn my experience, I’ve seen M1 (dropping any BLOQ values completely), M5 (replace BLOQ values with \\(LLOQ/2\\)), and M6 (in a series of consecutive BLOQ values, impute the BLOQ value closes to the maximum with \\(LLOQ/2\\) and drop the rest) most commonly in the pharmacometrics world. M3 (treat the BLOQ values as left-censored data) is very close to being technically correct (it is tecnically for lognormal error models) and is the gold standard, producing less-biased results than the above imputation methods, but it often has trouble converging with optimization methods. M4 (treat the BLOQ values as left-censored data and truncated below at 0) is the most technically correct, but I’ve never seen a single usage in practice. I tried it in NONMEM once, and it was a disaster.\nAs mentioned, M3 and M4 suffer from numerical issues with optimization methods. However, there are no such issues when performing MCMC sampling in Stan, so I write all of my models to use M4 if the error model is a distribution that is typically unbounded (Gaussian, Student’s-t, …), and M3 if the error model is naturally bounded below at 0 (lognormal - M3 and M4 are equivalent in this case).",
+    "crumbs": [
+      "Tutorials",
+      "Stan",
+      "Handling Censored Data"
+    ]
   },
   {
-    "objectID": "Content/Fundamentals/conjugate_priors.html",
-    "href": "Content/Fundamentals/conjugate_priors.html",
-    "title": "Conjugate Priors",
-    "section": "",
-    "text": "This is an intro to conjugate priors\n\n\n\n Back to top"
+    "objectID": "Content/Tutorials/Stan/handling_censored_data.html#sec-m3-model",
+    "href": "Content/Tutorials/Stan/handling_censored_data.html#sec-m3-model",
+    "title": "Handling Censored Data",
+    "section": "2 Treat the BLOQ values as Left-Censored Data (M3)",
+    "text": "2 Treat the BLOQ values as Left-Censored Data (M3)\nInstead of tossing out the BLOQ data (M1) or assigning them some arbitrary value (M5-M7), we should keep them in the data set and treat them as left-censored data. This means that the likelihood contribution for observation \\(y_{ij}\\) is calculated differently for observed values than for BLOQ values:\n\\[\\begin{align}\n\\mbox{observed data} &- f\\left(y_{ij} \\, | \\, \\theta_i, \\sigma, t_{ij} \\right) \\notag \\\\\n\\mbox{BLOQ data} &- F\\left(LLOQ \\, | \\, \\theta_i, \\sigma, t_{ij} \\right) \\notag \\\\\n\\end{align}\\]\nwhere \\(f\\left(y_{ij} \\, | \\, \\theta_i, \\sigma, t_{ij} \\right)\\) is the density (pdf) and \\(F\\left(LLOQ \\, | \\, \\theta_i, \\sigma, t_{ij} \\right) = P\\left(c_{ij} \\leq LLOQ\\, | \\, \\theta_i, \\sigma, t_{ij} \\right)\\) is the cumulative distribution function (cdf).\n\n2.1 Stan Code Example for M3\nI’ve mostly written Stan models on this site that fit the model with within-chain parallelization, but I’ll demonstrate the concept with code without within-chain parallelization1.\nFirst, let’s imagine something simple (like in the simple linear regression example) where there are no BLOQs, and we can just write the likelihood just how we would write it on paper:\nmodel{ \n  \n  // Priors\n  ...\n  \n  // Likelihood\n  y ~ normal(ipred, sigma);\n\n}\nor we could equivalently incorporate the likelihood by using the target += syntax:\nmodel{ \n  \n  // Priors\n  ...\n  \n  // Likelihood\n  target += normal_lpdf(y | ipred, sigma);\n\n}\nThe above likelihood is vectorized. We can equivalently write it with a for loop:\nmodel{ \n  \n  // Priors\n  ...\n  \n  // Likelihood\n  for(i in 1:n){\n    target += normal_lpdf(y[i] | mu[i], sigma);\n  }\n  \n}\nNow if we have BLOQs2, we just use the target += syntax and give the likelihood for each observation taking into account whether it is BLOQ or not.\nmodel{ \n  \n  // Priors\n  ...\n  \n  // Likelihood\n  for(i in 1:n)\n    if(bloq[i] == 1){\n      target += normal_lcdf(lloq[i] | mu[i], sigma);\n    }else{\n      target += normal_lpdf(y[i] | mu[i], sigma);\n    }\n  } \n\n}\nThese lines implement the math (on the log scale, since Stan calculates the log-posterior).\n\\[\\begin{align}\n\\mathtt{normal\\_lcdf(x)} &= log(F(x)), \\notag \\\\\n\\mathtt{normal\\_lpdf(x)} &= log(f(x)) \\notag \\\\\n\\end{align}\\]\nwhere \\(f(\\cdot)\\) and \\(F(\\cdot)\\) are the normal density and cumulative distribution functions, respectively3.",
+    "crumbs": [
+      "Tutorials",
+      "Stan",
+      "Handling Censored Data"
+    ]
   },
   {
-    "objectID": "Content/Fundamentals/intro_to_bayes.html",
-    "href": "Content/Fundamentals/intro_to_bayes.html",
-    "title": "Introduction to the Basics of Bayesian Methods",
-    "section": "",
-    "text": "This is an intro to the basics. We’ll do some stuff and mention conjugate priors and then put a link to that section\n\n\n\n Back to top"
+    "objectID": "Content/Tutorials/Stan/handling_censored_data.html#sec-m4-model",
+    "href": "Content/Tutorials/Stan/handling_censored_data.html#sec-m4-model",
+    "title": "Handling Censored Data",
+    "section": "3 Treat the BLOQ values as Left-Censored Data and Truncated Below at 0 (M4)",
+    "text": "3 Treat the BLOQ values as Left-Censored Data and Truncated Below at 0 (M4)\nWe know that drug concentrations cannot be \\(&lt; 0\\), but the normal distribution has support over (\\(-\\infty, \\, \\infty\\))4, so we will assume a normal distribution truncated below at 0. This will have the effect of limiting the support of our assumed distribution to \\((0, \\, \\infty)\\). Since we’re assuming a truncated distribution, we need to adjust the likelihood contributions of our data5: \\[\\begin{align}\n\\mbox{observed data} &- \\frac{f\\left(y_{ij} \\, | \\, \\theta_i, \\sigma, t_{ij} \\right)}{1 - F\\left(0 \\, | \\, \\theta_i, \\sigma, t_{ij} \\right)}  \\\\\n\\mbox{BLOQ data} &- \\frac{F\\left(LLOQ \\, | \\, \\theta_i, \\sigma, t_{ij} \\right) - F\\left(0 \\, | \\, \\theta_i, \\sigma, t_{ij} \\right)}{1 - F\\left(0 \\, | \\, \\theta_i, \\sigma, t_{ij} \\right)} \\\\\n\\end{align}\\]\n\n3.1 Stan Code Example for M4\nNow that you’ve seen the steps to go from the ~ operator to target += to a for loop in Section 2.1, we’ll just go ahead and write the M4 implementation:\nmodel{ \n  \n  // Priors\n  ...\n  \n  // Likelihood\n  for(i in 1:n)\n    if(bloq[i] == 1){\n      target += log_diff_exp(normal_lcdf(lloq[i] | mu[i], sigma),\n                             normal_lcdf(0.0 | mu[i], sigma)) -\n                normal_lccdf(0.0 | mu[i], sigma);\n    }else{\n      target += normal_lpdf(y[i] | mu[i], sigma) -\n                normal_lccdf(0.0 | mu[i], sigma);\n    }\n  } \n\n}\nThese lines implement the math (on the log scale, since Stan calculates the log-posterior).\n\\[\\begin{align}\n\\mathtt{log\\_diff\\_exp(normal\\_lcdf(lloq), normal\\_lcdf(0))} &= log(F(lloq) - F(0)), \\notag \\\\\n\\mathtt{normal\\_lcdf(x)} &= log(F(x)), \\notag \\\\\n\\mathtt{normal\\_lccdf(x)} &= log(1 - F(x)), \\notag \\\\\n\\mathtt{normal\\_lpdf(x)} &= log(f(x)) \\notag \\\\\n\\end{align}\\]\nwhere \\(f(\\cdot)\\) and \\(F(\\cdot)\\) are the normal density and cumulative distribution functions, respectively6.",
+    "crumbs": [
+      "Tutorials",
+      "Stan",
+      "Handling Censored Data"
+    ]
   },
   {
-    "objectID": "Content/Fundamentals/intro_to_mcmc.html",
-    "href": "Content/Fundamentals/intro_to_mcmc.html",
-    "title": "Intro to MCMC",
+    "objectID": "Content/Tutorials/Stan/handling_censored_data.html#footnotes",
+    "href": "Content/Tutorials/Stan/handling_censored_data.html#footnotes",
+    "title": "Handling Censored Data",
+    "section": "Footnotes",
+    "text": "Footnotes\n\n\nthe code is actually very similar. It’s more a matter of where it goes - if there’s no within-chain parallelization, it goes in the model block. If there is, then it goes into you partial_sum function in the functions block.↩︎\nHaving lloq[i] allows for a dataset where some observations have different LLOQs than others↩︎\nFor more information, see the Stan documentation for normal_lcdf(), and normal_lpdf().↩︎\nA model that assumes log-normal error has support over \\((0, \\, \\infty)\\), so truncation is not an issue. In that case, M3 and M4 are equivalent. Mathematically, you can see this by noting that \\(F\\left(0 \\, | \\, \\theta_i, \\sigma, t_{ij} \\right) = 0\\).↩︎\nFor observed data with this truncated distribution, we need to “correct” the density so it integrates to 1. Division by \\(1 - F(\\cdot \\, | \\, \\cdot)\\) has this effect. For the censored data, the numerator is similar to the M3 method, but we must also account for the fact that it must be \\(&gt;0\\), hence \\(P(0 \\leq y_{ij} \\leq LLOQ) = F(LLOQ) - F(0)\\). The denominator is corrected in the same manner as for the observed data.↩︎\nFor more information, see the Stan documentation for log_diff_exp(), normal_lcdf(), normal_lccdf(), and normal_lpdf().↩︎",
+    "crumbs": [
+      "Tutorials",
+      "Stan",
+      "Handling Censored Data"
+    ]
+  },
+  {
+    "objectID": "Content/Tutorials/Stan/building_up_stan_model.html",
+    "href": "Content/Tutorials/Stan/building_up_stan_model.html",
+    "title": "Building Up a Stan Model",
     "section": "",
-    "text": "This is an intro to Markov Chain Monte Carlo (MCMC)\n\n\n\n Back to top"
+    "text": "This tutorial will start with a simple, basic Stan model and build up to a complex model with non-centered parameterization, BLOQ handling, residuals, posterior predictive checks, log-likelihoods, and within-chain parallelization, giving explanation, tips, and tricks along the way.\n\n\n\n Back to top",
+    "crumbs": [
+      "Tutorials",
+      "Stan",
+      "Building up a Stan Model"
+    ]
+  },
+  {
+    "objectID": "Content/How_To/Predict/predict_observed_subjects.html",
+    "href": "Content/How_To/Predict/predict_observed_subjects.html",
+    "title": "Predict Observed Subjects",
+    "section": "",
+    "text": "Stay tuned!\n\n\n\n Back to top",
+    "crumbs": [
+      "How-To",
+      "Make Predictions",
+      "Predict Observed Subjects"
+    ]
   },
   {
     "objectID": "Content/How_To/howto.html",
     "href": "Content/How_To/howto.html",
     "title": "How To",
     "section": "",
-    "text": "Here are some how-to guides.\n\n\n\n Back to top"
+    "text": "Here are some how-to guides. This section should be fairly self-contained and will cover some of the steps of a Bayesian workflow implemented on a nonlinear mixed effects model. You should read the article and stay tuned for the book of the same name.\nFor this section, I’ll assume a one-compartment model with first-order oral absortion and first-order elimination and some covariate effects - it’s a simple model that everyone knows, so we can concentrate on the workflow and not worry about understanding the model.",
+    "crumbs": [
+      "How-To",
+      "How-to Guides"
+    ]
+  },
+  {
+    "objectID": "Content/How_To/howto.html#footnotes",
+    "href": "Content/How_To/howto.html#footnotes",
+    "title": "How To",
+    "section": "Footnotes",
+    "text": "Footnotes\n\n\nThis step can be skipped if you want, but I think it’s an important step to help me understand the model (structural and statistical), especially if it’s a model I’ve never written before, to make sure I’m coding it correctly, and to give me data with a known ground-truth data-generating process and parameters so that I can assess whether the model can possibly work - if it won’t work on fake data that is generated from itself, then it won’t work on real data.↩︎",
+    "crumbs": [
+      "How-To",
+      "How-to Guides"
+    ]
+  },
+  {
+    "objectID": "Content/How_To/simulate.html",
+    "href": "Content/How_To/simulate.html",
+    "title": "Simulating Synthetic Data",
+    "section": "",
+    "text": "This section will go through simulating synthetic data.\n\n\n\n Back to top",
+    "crumbs": [
+      "How-To",
+      "Simulate"
+    ]
+  },
+  {
+    "objectID": "Content/How_To/Simulate/simulate_synthetic_data.html",
+    "href": "Content/How_To/Simulate/simulate_synthetic_data.html",
+    "title": "Simulating Synthetic Data",
+    "section": "",
+    "text": "Stay tuned!\n\n\n\n Back to top",
+    "crumbs": [
+      "How-To",
+      "Simulate",
+      "Simulating Synthetic Data"
+    ]
+  },
+  {
+    "objectID": "Content/How_To/Fit/prior_predictive_checks.html",
+    "href": "Content/How_To/Fit/prior_predictive_checks.html",
+    "title": "Prior Predictive Checks",
+    "section": "",
+    "text": "Stay tuned!\n\n\n\n Back to top",
+    "crumbs": [
+      "How-To",
+      "Fit",
+      "Prior Predictive Checks"
+    ]
+  },
+  {
+    "objectID": "Content/How_To/Post_Process/mcmc_diagnostics.html",
+    "href": "Content/How_To/Post_Process/mcmc_diagnostics.html",
+    "title": "MCMC Diagnostics",
+    "section": "",
+    "text": "Code\nlibrary(plotly)\nlibrary(gganimate)\nlibrary(knitr)\nlibrary(kableExtra)\nlibrary(tidybayes)\nlibrary(posterior)\nlibrary(bayesplot)\nlibrary(cmdstanr)\nlibrary(tidyverse)\nCode\nregister_knitr_engine(override = TRUE)\ntheme_set(theme_bw(base_size = 14, base_line_size = 1))\n\nset_cmdstan_path(\"~/Torsten/cmdstan\")",
+    "crumbs": [
+      "How-To",
+      "Post-Process",
+      "MCMC Diagnostics"
+    ]
+  },
+  {
+    "objectID": "Content/How_To/Post_Process/mcmc_diagnostics.html#introduction",
+    "href": "Content/How_To/Post_Process/mcmc_diagnostics.html#introduction",
+    "title": "MCMC Diagnostics",
+    "section": "1 Introduction",
+    "text": "1 Introduction\nWe need to do some MCMC diagnostics to make sure our fit is valid.",
+    "crumbs": [
+      "How-To",
+      "Post-Process",
+      "MCMC Diagnostics"
+    ]
+  },
+  {
+    "objectID": "Content/How_To/Post_Process/mcmc_diagnostics.html#read-in-the-fit",
+    "href": "Content/How_To/Post_Process/mcmc_diagnostics.html#read-in-the-fit",
+    "title": "MCMC Diagnostics",
+    "section": "2 Read in the fit",
+    "text": "2 Read in the fit\nWe read in the CmdStanMCMC object that we fit in Fitting a Model\n\n\nCode\nfit &lt;- read_rds(here::here(\"Stan/Fits/depot_1cmt_ppa_covariates.rds\"))",
+    "crumbs": [
+      "How-To",
+      "Post-Process",
+      "MCMC Diagnostics"
+    ]
+  },
+  {
+    "objectID": "Content/How_To/Post_Process/model_diagnostics.html",
+    "href": "Content/How_To/Post_Process/model_diagnostics.html",
+    "title": "Model Diagnostics",
+    "section": "",
+    "text": "Stay tuned!\n\n\n\n Back to top",
+    "crumbs": [
+      "How-To",
+      "Post-Process",
+      "Model Diagnostics"
+    ]
+  },
+  {
+    "objectID": "Content/How_To/Cross_Validation/logocv.html",
+    "href": "Content/How_To/Cross_Validation/logocv.html",
+    "title": "Leave-one-group-out Cross-Validation",
+    "section": "",
+    "text": "Stay tuned!\n\n\n\n Back to top",
+    "crumbs": [
+      "How-To",
+      "Cross-Validation",
+      "Leave-one-group-out Cross-Validation"
+    ]
+  },
+  {
+    "objectID": "Content/About/about.html",
+    "href": "Content/About/about.html",
+    "title": "About",
+    "section": "",
+    "text": "I’m Casey.\n\n\n\n Back to top",
+    "crumbs": [
+      "About"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/fundamentals.html",
+    "href": "Content/Fundamentals/fundamentals.html",
+    "title": "Fundamentals",
+    "section": "",
+    "text": "These sections give some of the basics of Bayesian inference from a theoretical perspective and an introduction to Stan with some simple Stan programs to get a hang of the basics before diving into more difficult (but perhaps more relevant to a pharmacometrician) examples.\n\n\n\n Back to top",
+    "crumbs": [
+      "Fundamentals"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Stan/single_individual_pk.html",
+    "href": "Content/Fundamentals/Stan/single_individual_pk.html",
+    "title": "Program Blocks with Single Individual PK",
+    "section": "",
+    "text": "Stay tuned!\n\n\n\n Back to top",
+    "crumbs": [
+      "Fundamentals",
+      "Stan",
+      "Program Block Examples",
+      "Single Individual PK"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/program_block_examples.html",
+    "href": "Content/Fundamentals/program_block_examples.html",
+    "title": "Program Block Examples",
+    "section": "",
+    "text": "This section has a couple pages that are meant to give you a feel for the program blocks. They are not meant to show the best way to write a program, but to give some tips that can be carried over to other models.\n\n\n\n Back to top",
+    "crumbs": [
+      "Fundamentals",
+      "Stan",
+      "Program Block Examples"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Bayes/intro_to_mcmc.html",
+    "href": "Content/Fundamentals/Bayes/intro_to_mcmc.html",
+    "title": "Intro to MCMC",
+    "section": "",
+    "text": "This is an intro to Markov Chain Monte Carlo (MCMC)",
+    "crumbs": [
+      "Fundamentals",
+      "Bayes",
+      "Intro to MCMC"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Bayes/intro_to_mcmc.html#the-no-u-turn-sampler",
+    "href": "Content/Fundamentals/Bayes/intro_to_mcmc.html#the-no-u-turn-sampler",
+    "title": "Intro to MCMC",
+    "section": "The No-U-Turn-Sampler",
+    "text": "The No-U-Turn-Sampler\nSee here for an illustration of Stan’s No-U-Turn Sampler (NUTS).\nStay tuned!",
+    "crumbs": [
+      "Fundamentals",
+      "Bayes",
+      "Intro to MCMC"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Bayes/intro_to_bayes.html",
+    "href": "Content/Fundamentals/Bayes/intro_to_bayes.html",
+    "title": "Introduction to Bayesian Inference",
+    "section": "",
+    "text": "Code\nlibrary(plotly)\nlibrary(patchwork)\nlibrary(latex2exp)\nlibrary(cmdstanr)\nlibrary(tidyverse)",
+    "crumbs": [
+      "Fundamentals",
+      "Bayes",
+      "Intro to Bayesian Inference"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Bayes/intro_to_bayes.html#introduction",
+    "href": "Content/Fundamentals/Bayes/intro_to_bayes.html#introduction",
+    "title": "Introduction to Bayesian Inference",
+    "section": "1 Introduction",
+    "text": "1 Introduction\nThis document is meant to introduce you to the most basic elements of Bayesian inference. It is in no way comprehensive, but it will hopefully give you a platform of understanding so that you can dive deeper if you want.",
+    "crumbs": [
+      "Fundamentals",
+      "Bayes",
+      "Intro to Bayesian Inference"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Bayes/intro_to_bayes.html#motivating-examples",
+    "href": "Content/Fundamentals/Bayes/intro_to_bayes.html#motivating-examples",
+    "title": "Introduction to Bayesian Inference",
+    "section": "2 Motivating Examples",
+    "text": "2 Motivating Examples\nWe want to estimate the proportion of the population that likes Mountain Dew Cheesecake: \nAfter collecting \\(n = 6\\) data points where \\(y = 5\\) people liked it, we want to make inferences about the population parameter \\(\\theta\\), the proportion of people in the population that likes Mt. Dew Cheesecake.",
+    "crumbs": [
+      "Fundamentals",
+      "Bayes",
+      "Intro to Bayesian Inference"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Bayes/intro_to_bayes.html#classicalfrequentistlikelihoodist-approach",
+    "href": "Content/Fundamentals/Bayes/intro_to_bayes.html#classicalfrequentistlikelihoodist-approach",
+    "title": "Introduction to Bayesian Inference",
+    "section": "3 Classical/Frequentist/Likelihoodist Approach",
+    "text": "3 Classical/Frequentist/Likelihoodist Approach\nThe most common methods for parameter estimation in non-Bayesian paradigms involve some sort of optimization. For this problem, we’ll use maximum likelihood1, where we find the value of \\(\\theta\\) that maximizes the likelihood2, or, in other words, we find the value of \\(\\theta\\) that maximizes the probability of observing the data that we have observed.\nIn our motivating example, we assume the data has a binomial distribution with \\(n\\) trials and probability of success, \\(\\theta\\), i.e. \\(Y \\sim Bin(n,\\theta)\\). Then we can write out the density3, \\(f(y \\;| \\; \\theta)\\), the probability that we would would observe \\(y\\) “successes” out of \\(n\\) trials for a given value of \\(\\theta\\) for any value of \\(y \\in \\{0, 1, 2, \\ldots, n\\}\\) and \\(0 \\leq \\theta \\leq 1\\):\n\\[\n\\begin{align}\nf(y | \\theta) &= P(Y = y \\;| \\;\\theta) \\\\\n&= {n \\choose y}\\theta^y(1 - \\theta)^{n-y},\n\\;\\; y = 0, \\; 1, \\; 2, \\;\\ldots, \\; n\n\\end{align}\n\\]\nFor our example above, for \\(\\theta\\) values of 0.4 and 0.75, the density of \\(Y\\) looks like this:\n\n\nCode\nn &lt;- 6\nprobs &lt;- c(0.40, 0.75)\n\nbinom_data &lt;- expand_grid(y = 0:n, theta = probs) %&gt;%\n  mutate(density = dbinom(y, n, prob = theta))\n\nbase_plot &lt;- ggplot(mapping = aes(x = y, y = density,\n                                  text = paste0(\"y: \", y, \"&lt;/br&gt;&lt;/br&gt;density: \", \n                                                round(density, 3)))) +\n  scale_x_continuous(name = \"y\",\n                     breaks = 0:n,\n                     labels = 0:n) +\n  ggtitle(\"Binomial Density\") +\n  ylim(c(0, 0.4)) +\n  theme(plot.title = element_text(hjust = 0.5))\n\np_1 &lt;- (base_plot + \n          geom_bar(data = filter(binom_data, theta == probs[1]),\n                   stat = \"identity\")) %&gt;% \n  ggplotly(tooltip = \"text\") %&gt;% \n  layout(yaxis = list(title = str_c(\"P(Y = y | \\U03B8 = \", probs[1],\")\")),\n         xaxis = list(title = \"y\"))\n\np_2 &lt;- (base_plot + \n          geom_bar(data = filter(binom_data, theta == probs[2]),\n                   stat = \"identity\")) %&gt;% \n  ggplotly(tooltip = \"text\") %&gt;% \n  layout(yaxis = list(title = str_c(\"P(Y = y | \\U03B8 = \", probs[2],\")\")),\n         xaxis = list(title = \"y\"))\n\n\nannot_base &lt;- list(y = 1.0,\n                   font = list(size = 24), \n                   xref = \"paper\", \n                   yref = \"paper\", \n                   xanchor = \"center\", \n                   yanchor = \"bottom\", \n                   showarrow = FALSE)\n\na_1 &lt;- c(annot_base,\n         x = 0.2,\n         text = str_c(\"\\U03B8 = \", probs[1])) \n\na_2 &lt;- c(annot_base,\n         x = 0.8,\n         text = str_c(\"\\U03B8 = \", probs[2])) \n\n\nsubplot(p_1, p_2, titleY = TRUE, titleX = TRUE, margin = 0.08) %&gt;% \n  layout(annotations = list(a_1, a_2))\n\n\n\n\n\n\n\n\nFigure 1: Two Binomial Densities\n\n\n\n\nBut we want to maximize the likelihood function, \\(\\mathcal{L}(\\theta \\; | \\; y)\\). Luckily for us, it is the same as the density, but is a function of \\(\\theta\\) for a given \\(y\\), instead of \\(Y\\) for a given \\(\\theta\\). That is, \\(\\mathcal{L}(\\theta \\; | \\; y) = f(y \\;| \\; \\theta)\\). For our example with \\(n = 6\\) and \\(y = 5\\) the likelihood is as below\n\\[\\begin{align}\n\\mathcal{L}(\\theta \\; | \\; y)  &= {n \\choose y}\\theta^y(1 - \\theta)^{n-y} \\\\\n&= {6 \\choose 5}\\theta^5(1 - \\theta)^{6 - 5}, \\;\\; 0 \\leq \\theta \\leq 1\n\\end{align}\\]\n\n\nCode\ny &lt;- 5\n\n(p_likelihood_binom &lt;- tibble(theta = seq(0, 1, by = 0.01)) %&gt;% \n    mutate(likelihood = dbinom(y, n, prob = theta)) %&gt;% \n    ggplot(aes(x = theta, y = likelihood)) +\n    geom_line(linewidth = 2) +\n    ylab(str_c(\"L(\\U03B8 | Y = \", y, \")\")) +\n    xlab(\"\\U03B8\") +\n    ggtitle(str_c(\"Binomial Likelihood, n = \", n, \", Y = \", y)) +\n    theme(plot.title = element_text(hjust = 0.5),\n          plot.subtitle = element_text(hjust = 0.5)))\n\n\n\n\n\n\n\n\nFigure 2: Binomial likelihood.\n\n\n\n\n\nThe maximum likelihood estimate (MLE), \\(\\hat\\theta\\), is the value of \\(\\theta\\) that maximizes this function. That is, \\[\\hat\\theta = \\underset{\\theta}{\\mathrm{argmax}} \\;\n\\mathcal{L}(\\theta \\; | \\; x)\\]\nIntuitively, it is the value of \\(\\theta\\) that is “most likely” given the observed data. For example, in our example it doesn’t seem likely that we would observe our data if \\(\\theta = 0.25\\) (low likelihood), but it seems more likely that we could observe this data if \\(\\theta = 0.8\\) (high likelihood) or so.\nWe also want to quantify the uncertainty of this estimate, typically with a standard error. A larger standard error means we are more uncertain about our estimate than a smaller standard error, and in a sense, the standard error is a measure of the “pointiness” of the likelihood. The (asymptotic) standard error can be calculated as the square root of the diagonals of the inverse of the Fisher information matrix evaluated at the MLE (the observed Fisher information. See here for a more thorough discussion of MLEs, Fisher information, and the form when \\(\\theta\\) is a vector). An intuitive explanation of the relationship of the standard errors to the Fisher information matrix is that the standard error is a measure of the curvature of the likelihood. Roughly, more information in the data \\(\\implies\\) large negative values in the observed Fisher information matrix (more curvature) \\(\\implies\\) smaller values after inversion to get the variance.\nThis particular example has a simple, closed-form solution4, but most of our problems in the PK/PD world require a numerical optimization, typically by some gradient-based method. So for our example, we can do this numerical optimization in R:\n\n\nCode\nanalytical_mle &lt;- y/n\n\nnumerical_mle &lt;- optim(par = 0.3,\n                       fn = function(theta, n, x)\n                         -dbinom(x, n, theta, log = TRUE),\n                       n = n, x = y,\n                       method = \"Brent\",\n                       hessian = TRUE, lower = 0, upper = 1)\n\n\ntribble(~Solution, ~MLE, ~SE,\n        \"Analytical\", analytical_mle, sqrt(analytical_mle*(1 - analytical_mle)/n),\n        \"Numerical\", numerical_mle$par, sqrt(1/as.double(numerical_mle$hessian))) %&gt;%\n  knitr::kable(format = \"html\", digits = 3, align = \"c\") %&gt;%\n  kableExtra::kable_styling(bootstrap_options = \"striped\", full_width = FALSE,\n                            position = \"center\")\n\n\n\n\nTable 1: Analytical and Numerical MLEs\n\n\n\n\n\n\nSolution\nMLE\nSE\n\n\n\n\nAnalytical\n0.833\n0.152\n\n\nNumerical\n0.833\n0.152\n\n\n\n\n\n\n\n\n\n\nCode\nx_ticks &lt;- sort(c(numerical_mle$par, seq(0, 1, by = 0.25)))\ntick_colors &lt;- if_else(x_ticks == numerical_mle$par, \"red\", \"black\")\n\n(p_1 &lt;- p_likelihood_binom +\n    geom_segment(aes(x = numerical_mle$par, y = 0,\n                     xend = numerical_mle$par,\n                     yend = dbinom(y, n, numerical_mle$par)),\n                 color = \"red\") +\n    scale_x_continuous(breaks = x_ticks,\n                       labels = as.character(round(x_ticks, 3))) +\n    theme(axis.text.x = element_text(color = tick_colors)) +\n    ggtitle(str_c(\"n = \", n, \", Y = \", y)))\n\n\n\n\n\nBinomial likelihood with MLE.",
+    "crumbs": [
+      "Fundamentals",
+      "Bayes",
+      "Intro to Bayesian Inference"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Bayes/intro_to_bayes.html#bayesian-approach",
+    "href": "Content/Fundamentals/Bayes/intro_to_bayes.html#bayesian-approach",
+    "title": "Introduction to Bayesian Inference",
+    "section": "4 Bayesian Approach",
+    "text": "4 Bayesian Approach\nAs mentioned here, classical methods treat the parameter(s) as fixed and the data random and then find a point estimate and standard error using only information from the data. In contrast, Bayesian methods treat the parameter(s) as a random variable and consider the data fixed and then make inferences based on a proper distribution. These methods initially allocate probability to all possible parameter values via a prior distribution and then reallocate probability when new information is gained. Bayesian inference depends on our ability to quantify the posterior distribution of the parameters conditioned on the data. This posterior distribution contains all of our knowledge about \\(\\theta\\) (prior knowledge and knowledge obtained from the data).\n\n4.1 Bayes’ Theorem\nThe form of the posterior distribution follows from Bayes’ Theorem5: \\[\\begin{align}\n\\color{blue}{p\\left( \\theta | y\\right)} &=\n\\frac{\\color{purple}{f(y, \\theta)}}{\\color{red}{f\\left( y \\right)}} \\notag \\\\\n&= \\frac{\\color{green}{f\\left( y | \\theta\\right)}\\color{orange}{p\\left( \\theta\n\\right)}}{\\color{red}{f\\left( y \\right)}} \\notag \\\\\n&= \\frac{\\color{green}{f\\left( y | \\theta\\right)}\\color{orange}{p\\left( \\theta\n\\right)}}{\\color{red}{\\int \\limits_{\\Theta}f\\left( y | \\theta\\right)\np\\left( \\theta \\right) \\mathrm{d}\\theta}}\n\\end{align} \\tag{1}\\]\n\n4.1.1 Prior Distribution\nWe begin with the prior distribution to quantify our knowledge/beliefs about \\(\\theta\\) before we collect data. For our example, we might assume\n\na “noninformative” prior distribution6 and use a \\(Uniform(0, 1)\\) (equivalent to a \\(Beta(1,1)\\)7 distribution for \\(p(\\theta)\\)). This is a simple way to express our ignorance about \\(\\theta\\).\nan informative prior that expresses our belief that most people will not like Mt. Dew Cheesecake. We might quantify this with a \\(Beta(2, 3)\\) distribution.\n\n\n\nCode\nalpha_1 &lt;- 1\nbeta_1 &lt;- 1\n\nalpha_2 &lt;- 2\nbeta_2 &lt;- 3\n\ntheta &lt;- seq(0, 1, 0.01)\n\ndf_prior &lt;- tibble(theta = theta) %&gt;% \n  mutate(prior_1 = dbeta(theta, alpha_1, beta_1),\n         prior_2 = dbeta(theta, alpha_2, beta_2)) %&gt;% \n  pivot_longer(c(prior_1, prior_2), values_to = \"value\",\n               names_to = \"example\", names_prefix = \"prior_\") %&gt;% \n  arrange(example)\n\n\n(p_prior &lt;- ggplot(data = df_prior, aes(x = theta, y = value, \n                                        color = example)) +\n    geom_line(linewidth = 2) +\n    ylab(latex2exp::TeX(\"$p(\\\\theta)$\")) +\n    xlab(latex2exp::TeX(\"$\\\\theta$\")) +\n    scale_color_manual(name = \"Prior\",\n                       values = c(\"1\" = \"purple\", \"2\" = \"orange\"),\n                       labels = c(\"Uniform (Beta(1, 1))\",\n                                  \"Informative (Beta(2, 3))\")) +\n    theme(legend.position = \"bottom\"))\n\n\n\n\n\n\n\n\nFigure 3: Two beta priors.\n\n\n\n\n\n\n\n4.1.2 Likelihood\nThe likelihood is the same (see Figure 2) as we had when we were using optimization methods (recall that \\(\\mathcal{L}(\\theta \\; | \\; y) = f(y \\;| \\; \\theta)\\)).\n\n\nCode\ndf_likelihood &lt;- tibble(theta = theta) %&gt;%\n  mutate(likelihood_1 = dbinom(y, n, prob = theta)) %&gt;%\n  pivot_longer(likelihood_1, values_to = \"value\",\n               names_to = \"example\", names_prefix = \"likelihood_\") %&gt;%\n  arrange(example)\n\n(p_likelihood &lt;- ggplot(data = df_likelihood, aes(x = theta, y = value)) +\n    geom_line(linewidth = 2, color = \"#008000\") +\n    ylab(latex2exp::TeX(\"$f(y | \\\\theta) = L(\\\\theta | y)$\")) +\n    xlab(latex2exp::TeX(\"$\\\\theta$\")) #+\n  # ggtitle(str_c(\"Y = \", y, \", n = \", n)) +\n  # theme(plot.title = element_text(hjust = 0.5))\n)\n\n\n\n\n\n\n\n\nFigure 4: Unnormalized Likelihood.\n\n\n\n\n\nOne thing to notice for this likelihood is that it does not integrate to 18 (this particular likelihood integrates to 0.143), one of the requirements for a function to be a probability distribution. However, the likelihood can be normalized to integrate to 1 by multiplying by a constant. This will be touched upon again in Section 4.1.3 and in Section 5.1, and all future plots will plot a scaled likelihood for visual purposes.\nRegardless, the likelihood is a key part of Bayes’ Theorem and contains the information about \\(\\theta\\) obtained from the data.\n\n\n4.1.3 Marginal Distribution\nConsider the case where \\(Y\\) has the sampling density \\(\\color{green}{f(y \\;|\\; \\theta)}\\) and \\(\\theta\\) is a random variable with density \\(\\color{orange}{p(\\theta)}\\). Then the joint density of \\(Y\\) and \\(\\theta\\) is \\[\\color{purple}{f(y, \\; \\theta)} = \\color{green}{f(y \\;|\\; \\theta)} \\; \\color{orange}{p(\\theta)},\\] which you will recognize as the numerator in Equation 1. The marginal distribution9 of \\(Y\\) is then \\[\n\\begin{align}\n\\color{red}{f(y)} &= \\int \\limits_{\\Theta} f(y, \\; \\theta) \\; d\\theta \\notag \\\\\n&= \\int \\limits_{\\Theta}f(y \\;|\\; \\theta) \\; p(\\theta) d\\theta\n\\end{align}\n\\tag{2}\\]\nThat is, the marginal density of \\(Y\\) is equal to the conditional sampling density of \\(Y\\) averaged over all possible values of \\(\\theta\\). It can also be thought of as a description of the predictions we would make for \\(Y\\) given only our prior knowledge, which is why this is sometimes called the “prior predictive distribution”10. See Section 5.1 for more discussion on the marginal distribution.\nIn practice, the marginal distribution is often analytically intractable, and so we have the posterior distribution up to a constant: \\[\\begin{align}\n\\color{blue}{p( \\theta \\; | \\; x)} &=\n\\frac{\\color{green}{f( x \\; | \\; \\theta)}\\; \\color{orange}{p( \\theta )}}\n{\\color{red}{f\\left( x \\right)}} \\notag \\\\\n&\\propto \\color{green}{f( x \\; | \\; \\theta)}\\; \\color{orange}{p( \\theta )}\n\\end{align} \\tag{3}\\]\nThis inability to find a closed-form for the marginal distribution is not a problem. Modern computational methods such as Markov Chain Monte Carlo (MCMC) allow us to sample from the posterior in such a way that the sample represents the true posterior distribution arbitrarily closely, and we can perform our inference based on this sample. See here for a brief introduction to MCMC.\n\n\n4.1.4 Posterior Distribution\nThe posterior distribution (See Section 5.2 for a derivation of the posterior for our example) is the key to all Bayesian inference. It combines the prior distribution and the likelihood and contains all of the available information about \\(\\theta\\) (prior knowledge and information obtained from the data):\n\n\nCode\ndf_all &lt;- tibble(theta = theta) %&gt;% \n  mutate(posterior_Uniform = dbeta(theta, alpha_1 + y, beta_1 + n - y),\n         posterior_Informative = dbeta(theta, alpha_2 + y, beta_2 + n - y)) %&gt;%\n  pivot_longer(starts_with(\"posterior\"), values_to = \"value\",\n               names_to = \"example\", names_prefix = \"posterior_\") %&gt;%\n  mutate(which_one = \"posterior\") %&gt;% \n  bind_rows(df_prior %&gt;% \n              mutate(which_one = \"prior\",\n                     example = if_else(example == \"1\", \"Uniform\", \"Informative\")),\n            purrr::map(seq_len(2), \\(x) df_likelihood) %&gt;% \n              list_rbind(names_to = \"example\") %&gt;% \n              mutate(which_one = \"likelihood\",\n                     example = if_else(example == 1, \"Uniform\", \n                                       \"Informative\"))) %&gt;% \n  mutate(Prior = factor(example, \n                          levels = c(\"Uniform\", \"Informative\"))) %&gt;% \n  select(-example)\n\n  \n\ndf_all %&gt;%\n  mutate(value = if_else(which_one == \"likelihood\", value/normalizer,\n                         value)) %&gt;%\n  ggplot(aes(x = theta, y = value, group = which_one, color = which_one)) +\n  geom_line(size = 1.25) +\n  xlab(latex2exp::TeX(\"$\\\\theta$\")) +\n  ylab(NULL) +\n  scale_color_manual(name = NULL,\n                     breaks = c(\"prior\", \"likelihood\", \"posterior\"),\n                     values = c(\"orange\", \"green4\", \"blue\"),\n                     labels = c(\"Prior\", \"Likelihood\", \"Posterior\")) +\n  facet_wrap(~ Prior, labeller = label_both) +\n  theme(legend.position = \"bottom\")\n\n\n\n\n\n\n\n\nFigure 5: Posterior as a combination of the likelihood and prior.\n\n\n\n\n\n\n\n\n\n\n\nNote\n\n\n\nIn the above plot for the example with the uniform prior, the posterior and (scaled) likelihood overlap exactly. With the uniform prior, \\(p(\\theta \\; | \\; y) \\propto \\mathcal{L}(\\theta \\; | \\; y)\\)\n\n\nOnce we have our posterior distribution, we can make similar inferences as in frequentist inference:\n\nPoint estimates - We have a proper distribution now, so we can report the posterior mean, median, mode, and standard deviation (analogous to the standard error):\n\n\n\nCode\npoint_estimates &lt;- tibble(\n  Prior = factor(c(\"Uniform\", \"Informative\")),\n  Mean = c((alpha_1 + y)/(alpha_1 + y + beta_1 + n - y),\n           (alpha_2 + y)/(alpha_2 + y + beta_2 + n - y)),\n  Median = c(qbeta(0.5, alpha_1 + y, beta_1 + n - y),\n             qbeta(0.5, alpha_2 + y, beta_2 + n - y)),\n  Mode = c((alpha_1 + y - 1)/(alpha_1 + y + beta_1 + n - y - 2),\n           (alpha_2 + y - 1)/(alpha_2 + y + beta_2 + n - y - 2)),\n  `Std. Dev.` = c(sqrt((alpha_1 + y)*(beta_1 + n - y)/\n                         ((alpha_1 + beta_1 + n)^2*(alpha_1 + beta_1 + n + 1))),\n                  sqrt((alpha_2 + y)*(beta_2 + n - y)/\n                         ((alpha_2 + beta_2 + n)^2*(alpha_2 + beta_2 + n + 1))))) \n\npoint_estimates %&gt;% \n  knitr::kable(format = \"html\", digits = 3, align = \"lcccc\") %&gt;%\n  kableExtra::kable_styling(bootstrap_options = \"striped\", full_width = FALSE,\n                            position = \"center\")\n\n\n\n\nTable 2: Posterior Point Estimates and Uncertainty\n\n\n\n\n\n\nPrior\nMean\nMedian\nMode\nStd. Dev.\n\n\n\n\nUniform\n0.750\n0.772\n0.833\n0.144\n\n\nInformative\n0.636\n0.645\n0.667\n0.139\n\n\n\n\n\n\n\n\n\n\nCode\n(p_posterior_with_point_estimates &lt;- df_all %&gt;% \n    filter(which_one == \"posterior\") %&gt;%  \n    ggplot(aes(x = theta, y = value)) +\n    geom_line(size = 1.25, color = \"blue\") +\n    xlab(latex2exp::TeX(\"$\\\\theta$\")) +\n    ylab(latex2exp::TeX(\"$p(\\\\theta | y)$\")) +\n    geom_segment(data = point_estimates %&gt;% \n                   select(-`Std. Dev.`) %&gt;% \n                   pivot_longer(c(Mean, Median, Mode)) %&gt;% \n                   mutate(density = \n                            if_else(Prior == \"Uniform\", \n                                    dbeta(value, alpha_1 + y, beta_1 + n - y),\n                                    dbeta(value, alpha_2 + y, beta_2 + n - y))), \n                 mapping = aes(x = value, y = 0, xend = value, yend = density,\n                               color = name),\n                 size = 1.15) +\n    scale_color_manual(name = \"Point Estimate\",\n                       breaks = c(\"Mean\", \"Median\", \"Mode\"),\n                       labels = c(\"Mean\", \"Median\", \"Mode\"),\n                       values = c(\"red\", \"purple\", \"black\")) +\n  facet_wrap(~ Prior, labeller = label_both))\n\n\n\n\n\n\n\n\nFigure 6: Posterior point estimates.\n\n\n\n\n\n\nWe can make interval estimates, e.g.credible intervals, with a natural probabilistic interpretation:\n\nFor the informative prior - “There is a 95% chance that the true proportion of people who like Mt. Dew cheesecake is between 0.348 and 0.878.”\nFor the informative prior - “There is an 82.81% chance that the true proportion of people who like Mt. Dew cheesecake is at least 0.5.”\n\n\n\n\nCode\ninterval_base &lt;- df_all %&gt;%\n  filter(Prior == \"Informative\", which_one == \"posterior\") %&gt;%\n  bind_rows(tibble(theta = c(qbeta(0.025, alpha_2 + y, beta_2 + n - y),\n                             qbeta(0.975, alpha_2 + y, beta_2 + n - y)),\n                   which_one = \"posterior\",\n                   Prior = factor(\"informative\")) %&gt;%\n              mutate(value = dbeta(theta, alpha_2 + y, beta_2 + n - y))) %&gt;%\n  arrange(theta) %&gt;%\n  ggplot(aes(x = theta, y = value)) +\n  geom_line(size = 1.25, color = \"blue\") +\n  xlab(latex2exp::TeX(\"$\\\\theta$\")) +\n  ylab(latex2exp::TeX(\"$p(\\\\theta | y)$\"))\n  \nx_ticks &lt;- sort(c(qbeta(c(0.025, 0.975), alpha_2 + y, beta_2 + n - y),\n                  seq(0, 1, by = 0.25)))\ntick_colors &lt;- if_else(x_ticks %in%\n                         qbeta(c(0.025, 0.975),\n                               alpha_2 + y, beta_2 + n - y),\n                       \"red\", \"black\")\n\np_ci &lt;- interval_base +\n  geom_area(data = df_all %&gt;%\n              filter(Prior == \"Informative\", which_one == \"posterior\",\n                     between(theta,\n                             qbeta(0.025, alpha_2 + y, beta_2 + n - y),\n                             qbeta(0.975, alpha_2 + y, beta_2 + n - y))),\n            fill = \"blue\", alpha = 0.25) +\n  ggtitle(\"95% credible interval\") +\n  theme(plot.title = element_text(hjust = 0.5)) +\n  scale_x_continuous(breaks = x_ticks,\n                     labels = as.character(round(x_ticks, 3))) +\n  theme(axis.text.x = element_text(color = tick_colors))\n\np_gt_50 &lt;- interval_base +\n  geom_area(data = df_all %&gt;%\n              filter(Prior == \"Informative\", which_one == \"posterior\",\n                     between(theta, 0.50, 1)),\n            fill = \"blue\", alpha = 0.25) +\n  ggtitle(latex2exp::TeX(\"$P(\\\\theta &gt; 0.50 | Y = 5)$\")) +\n  theme(plot.title = element_text(hjust = 0.5))\n\np_ci +\n  p_gt_50 +\n  plot_annotation(\n    title = \"Interval Estimates with Our Informative Prior\",\n  ) &\n  theme(plot.title = element_text(hjust = 0.5))\n\n\n\n\n\n\n\n\n\n\n4.1.4.1 Posterior Predictive Distribution\nWe can also look at the posterior predictive distribution (See (Section 5.3) for a derivation of the posterior predictive distribution for our examples). This is the distribution of possible unobserved (or future) values conditional on our observed values. For example, we could look at the density for a future observation, \\(y^*\\), for different future values of \\(n, n^*\\).\n\n\nCode\nn_star &lt;- c(6, 10)\n\n(p_analytical_ppd &lt;- tibble(y_star = c(0:n_star[1], 0:n_star[2]),\n                            n_star = c(rep(n_star[1], times = n_star[1] + 1),\n                                       rep(n_star[2], times = n_star[2] + 1))) %&gt;%\n    mutate(density = extraDistr::dbbinom(y_star, n_star,\n                                         alpha_2 + y, beta_2 + n - y)) %&gt;%\n    ggplot() +\n    geom_bar(aes(x = y_star, y = density),\n             stat = \"identity\") +\n    scale_x_continuous(name = latex2exp::TeX(\"$y^*$\"),\n                       breaks = 0:max(n_star),\n                       labels = 0:max(n_star)) +\n    ylab(latex2exp::TeX(\"$p(y^* | \\\\; y) = P(Y^*= y^* | \\\\; y)\")) +\n    ggtitle(\"Posterior Predictive Density\") +\n    theme(plot.title = element_text(hjust = 0.5)) +\n    facet_wrap(~n_star, scales = \"free_x\",\n               labeller = label_bquote(n^\"*\" == .(n_star))))\n\n\n\n\n\n\n\n\nFigure 7: Posterior Predictive Density for Future Observations",
+    "crumbs": [
+      "Fundamentals",
+      "Bayes",
+      "Intro to Bayesian Inference"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Bayes/intro_to_bayes.html#appendices",
+    "href": "Content/Fundamentals/Bayes/intro_to_bayes.html#appendices",
+    "title": "Introduction to Bayesian Inference",
+    "section": "5 Appendices",
+    "text": "5 Appendices\n\n5.1 Appendix A - More on the Marginal Distribution\nWhile the marginal distribution is often analytically intractable, there are special cases where we have conjugate priors where we can find the closed form. See also, conjugate priors. For our examples, we have assumed \\[\n\\begin{align}\nY|\\theta &\\sim Binomial(n, \\; \\theta) \\\\\n\\theta &\\sim Beta(\\alpha, \\; \\beta)\n\\end{align}\n\\] Then \\[\n\\begin{align}\nf(y) &= \\int \\limits_{\\Theta} f\\left( y, \\; \\theta \\right) \\; \\mathrm{d}\\theta \\\\\n&= \\int \\limits_{\\Theta}f\\left( y | \\theta\\right) p\\left( \\theta \\right) \\;\n\\mathrm{d}\\theta  \\notag \\\\\n&= \\int_0^1 {n \\choose y}\\theta^y(1 - \\theta)^{n-y}\n\\frac{\\Gamma(\\alpha + \\beta)}{\\Gamma(\\alpha)\\Gamma(\\beta)}\n\\theta^{\\alpha - 1}(1 - \\theta)^{\\beta - 1} \\; \\mathrm{d}\\theta \\notag \\\\\n&= {n \\choose y} \\frac{\\Gamma(\\alpha + \\beta)}{\\Gamma(\\alpha) \\; \\Gamma(\\beta)}\n\\frac{\\Gamma(\\alpha + y) \\;\n\\Gamma(\\beta + n - y)}{\\Gamma(\\alpha + \\beta + n)} \\notag \\\\\n&= {n \\choose y} \\frac{B(\\alpha + y, \\; \\beta + n - y)}{B(\\alpha, \\; \\beta)},\n\\; y \\in \\{0, 1, \\ldots, n\\}, \\;\\;\\; \\alpha, \\; \\beta &gt; 0\n\\end{align}\n\\tag{4}\\] a beta-binomial distribution11.\nIf we assume the prior distribution \\(\\theta \\sim Beta(1, 1)\\) to express our ignorance of \\(\\theta\\), then Equation 4 evaluates to \\[f(y) = \\frac{1}{n+1}, \\; y = 0, 1, \\ldots, n\\] the density for a discrete uniform.\nIf we assume the prior distribution \\(\\theta \\sim Beta(2, 3)\\) to express our prior knowledge of \\(\\theta\\), then \\[\\begin{align}\nf(y) &= \\frac{n!}{y!\\;(n-y)!}\\;\\frac{4!}{1!\\;2!} \\;\n\\frac{(y+1)! \\; (n-y+2)!}{(n+4)!}, \\;\\; y = 0, 1, \\ldots, n\n\\end{align}\\]\nThese two marginal distributions look like this (for our example with \\(n = 6\\)):\n\n\nCode\nalpha_1 &lt;- 1\nbeta_1 &lt;- 1\n\nalpha_2 &lt;- 2\nbeta_2 &lt;- 3\n\ndbetabinomial &lt;- function(y, n, alpha, beta){\n  \n  choose(n, y) * beta(alpha + y, beta + n - y)/(beta(alpha, beta)) \n  \n}\n\nmarg_dists &lt;- tibble(y = 0:n) %&gt;% \n  mutate(prior_1 = dbetabinomial(y, n, alpha_1, beta_1),\n         prior_2 = dbetabinomial(y, n, alpha_2, beta_2)) %&gt;% \n  pivot_longer(c(prior_1, prior_2), values_to = \"density\",\n               names_to = \"prior\", names_prefix = \"prior_\") %&gt;% \n  arrange(prior)\n\nbase_plot &lt;- ggplot(mapping = aes(x = y, y = density,\n                                  text = paste0(\"y: \", y, \"&lt;/br&gt;&lt;/br&gt;density: \",\n                                                round(density, 3)))) +\n  scale_x_continuous(name = \"y\",\n                     breaks = 0:n,\n                     labels = 0:n) +\n  ggtitle(\"Marginal Density\") +\n  theme(plot.title = element_text(hjust = 0.5))\n\np_marginal_1 &lt;- (base_plot +\n                   geom_bar(data = filter(marg_dists, prior == \"1\"),\n                            stat = \"identity\") +\n                   ylim(c(0, max(marg_dists$density + 0.01)))) %&gt;%\n  ggplotly(tooltip = \"text\") %&gt;%\n  layout(yaxis = list(title = str_c(\"f(y) = P(Y = y)\")),\n         xaxis = list(title = \"y\"))\n\np_marginal_2 &lt;- (base_plot +\n                   geom_bar(data = filter(marg_dists, prior == \"2\"),\n                            stat = \"identity\") +\n                   ylim(c(0, max(marg_dists$density + 0.01)))) %&gt;%\n  ggplotly(tooltip = \"text\") %&gt;%\n  layout(yaxis = list(title = str_c(\"f(y) = P(Y = y)\")),\n         xaxis = list(title = \"y\"))\n\nannot_base &lt;- list(y = 1.0,\n                   font = list(size = 16),\n                   xref = \"paper\",\n                   yref = \"paper\",\n                   xanchor = \"center\",\n                   yanchor = \"bottom\",\n                   showarrow = FALSE)\n\na_1 &lt;- c(annot_base,\n         x = 0.225,\n         text = str_c(\"\\U03B1 = \", alpha_1, \", \\U03B2 = \", beta_1))\n\na_2 &lt;- c(annot_base,\n         x = 0.775,\n         text = str_c(\"\\U03B1 = \", alpha_2, \", \\U03B2 = \", beta_2))\n\nsubplot(p_marginal_1, p_marginal_2, titleY = TRUE, titleX = TRUE, \n        margin = 0.08) %&gt;%\n  layout(annotations = list(a_1, a_2))\n\n\n\n\nTwo marginal densities.\n\n\nStopping to think about this, these plots make sense: if we have no knowledge of \\(\\theta\\) (recall that a \\(Beta(1,1)\\) distribution is “noninformative”), then any value of \\(y\\) should be no more or less likely than any other possible value of \\(y\\) conditional on our current knowledge of \\(\\theta\\). If we have some idea of \\(\\theta\\) (a \\(Beta(2, 3)\\) describes our belief that it is likely that \\(\\theta &lt; 0.5\\), see Figure 3), then we would also expect the marginal distribution of \\(Y\\) to be skewed towards lower values, as seen above.\nHaving integrated \\(\\theta\\) out of the joint distribution of \\(Y\\) and \\(\\theta\\), we can see that the marginal distribution is a constant in \\(\\theta\\). This constant is exactly the value needed to normalize the numerator in Equation 1, making the posterior distribution a true distribution.\nTo be explicit, for \\(p(\\theta \\; | \\; y)\\) to be a valid probability density function, it must integrate to 1, i.e. \\[\n\\begin{align}\n\\int_\\Theta p(\\theta \\; | \\; y)\\,d\\theta &= \\int_\\Theta\\frac{f(y, \\theta)}{f(y)} \\,d\\theta\\\\\n&= \\int_\\Theta\\frac{f(y \\; | \\; \\theta)p(\\theta)}{f(y)} \\,d\\theta \\\\\n&= \\frac{1}{f(y)}\\int_\\Theta f(y \\; | \\; \\theta)p(\\theta) \\,d\\theta\\\\\n&:= 1\n\\end{align}\n\\]\nWe have\n\\[\n\\begin{align}\n\\color{purple}{f(y, \\theta)} &= f(y \\; | \\; \\theta)\\;p(\\theta) \\\\\n&= Bin(y \\; | \\; n, \\theta) \\times Beta(\\theta \\; | \\; \\alpha, \\beta)\n\\end{align}\n\\]\nFor our example and our two possible prior distributions, let’s integrate this joint distribution12 and divide by the marginal:\n\n\nCode\nintegral_of_joint &lt;- function(n, y, alpha, beta){\n  \n  integrate(function(theta, n, y, alpha, beta) \n    dbinom(y, n, theta) * dbeta(theta, alpha, beta), \n    n = n, y = y, alpha = alpha, beta = beta,\n    lower = 0, upper = 1)$value\n  \n}\n\nintegral_1 &lt;- integral_of_joint(n = n, y = y, alpha = alpha_1, beta = beta_1)\nintegral_2 &lt;- integral_of_joint(n = n, y = y, alpha = alpha_2, beta = beta_2)\n\ntribble(~Prior, ~`Integral of Joint`, ~Marginal, \n        \"1\", integral_1, dbetabinomial(y, n, alpha_1, beta_1),\n        \"2\", integral_2, dbetabinomial(y, n, alpha_2, beta_2)) %&gt;%\n  mutate(`Integral of Posterior` = `Integral of Joint`/Marginal) %&gt;% \n  knitr::kable(format = \"html\", digits = 3, align = \"c\") %&gt;%\n  kableExtra::kable_styling(bootstrap_options = \"striped\", full_width = FALSE,\n                            position = \"center\")\n\n\n\n\nTable 3: Normalizing the Joint Distribution\n\n\n\n\n\n\nPrior\nIntegral of Joint\nMarginal\nIntegral of Posterior\n\n\n\n\n1\n0.143\n0.143\n1\n\n\n2\n0.086\n0.086\n1\n\n\n\n\n\n\n\n\nSo you can see that the marginal is exactly the value needed to ensure that the posterior is a valid probability density function.\n\n\n\n\n\n\nNote\n\n\n\nNote that this almost seems trivial for this problem, but in most cases in practice \\(\\theta\\) is multi-dimensional and finding \\(f(y)\\) is impossible.\n\n\n\n\n5.2 Appendix B - Derivation of the Posterior in Our Example\nFor our examples, we have assumed a binomial likelihood with a beta prior (this is a conjugate prior)\n\\[\n\\begin{align}\nX|\\theta &\\sim Binomial(n, \\; \\theta) \\\\\n\\theta &\\sim Beta(\\alpha, \\; \\beta)\n\\end{align}\n\\] Then\n\\[\n\\begin{align}\np( \\theta \\; | \\; x) &=\n\\frac{f( x \\; | \\; \\theta)\\; p( \\theta )}{f\\left( x \\right)} \\notag \\\\\n&\\propto f( x \\; | \\; \\theta)\\; p( \\theta ) \\notag \\\\\n&= {n \\choose x}\\theta^x(1 - \\theta)^{n-x} \\;\n\\frac{\\Gamma(\\alpha + \\beta)}{\\Gamma(\\alpha)\\;\\Gamma(\\beta)} \\;\n\\theta^{\\alpha - 1}\\;(1-\\theta)^{\\beta - 1} \\notag \\\\\n&\\propto \\theta^{\\alpha + x - 1}\\;(1 - \\theta)^{\\beta + n - x - 1} \\notag \\\\\n&\\implies \\theta\\;|\\;x \\sim Beta(\\alpha + x, \\; \\beta + n - x)\n\\end{align}\n\\]\n\n\n5.3 Appendix C - Derivation of the Posterior Predictive Distribution in Our Example\nIn Section 5.2 we derived the posterior distribution of \\(\\theta\\). Here we will derive the posterior predictive distribution used for posterior predictive checking and to simulate/predict future data.\nAfter collecting \\(y\\) positive responses out of \\(n\\) respondents, we want the density for the number of positive responses, \\(y^*\\), out of \\(n^*\\) future respondents: \\[\n\\begin{align}\nf(y^* | y) &= \\int \\limits_{\\Theta} p\\left( y^*, \\; \\theta  | y \\right) \\;\n\\mathrm{d}\\theta \\notag \\\\\n&= \\int \\limits_{\\Theta}f\\left( y^* | \\theta, y \\right)\np\\left( \\theta | y \\right) \\; \\mathrm{d}\\theta  \\notag \\\\\n&= \\int \\limits_{\\Theta}f\\left( y^* | \\theta \\right)\np\\left( \\theta | y \\right) \\; \\mathrm{d}\\theta \\\\\n&= \\int_0^1 {n^* \\choose y^*}\\theta^{y^*}(1 - \\theta)^{n^* - y^*}\n\\frac{\\Gamma(\\alpha + \\beta + n)}{\\Gamma(\\alpha + y)\\Gamma(\\beta + n - y)}\n\\theta^{\\alpha + y - 1}(1 - \\theta)^{\\beta + n - y - 1} \\;\n\\mathrm{d}\\theta \\notag \\\\\n&= {n^* \\choose y^*} \\frac{\\Gamma(\\alpha + \\beta + n)}{\\Gamma(\\alpha + y) \\; \\Gamma(\\beta + n - y)}\n\\frac{\\Gamma(\\alpha + y + y^*) \\;\n\\Gamma(\\beta + n - y + n^* - y^*)}{\\Gamma(\\alpha + \\beta + n + n^*)} \\notag \\\\\n&= {n^* \\choose y^*}\n\\frac{B(\\alpha + y + y^*, \\; \\beta + n - y + n^* - y^*)}{B(\\alpha + y, \\; \\beta + n - y)},\n\\; y^* \\in \\{0, 1, \\ldots, n^*\\}\n\\end{align}\n\\] another beta-binomial distribution.",
+    "crumbs": [
+      "Fundamentals",
+      "Bayes",
+      "Intro to Bayesian Inference"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Bayes/intro_to_bayes.html#footnotes",
+    "href": "Content/Fundamentals/Bayes/intro_to_bayes.html#footnotes",
+    "title": "Introduction to Bayesian Inference",
+    "section": "Footnotes",
+    "text": "Footnotes\n\n\nYou might see least squares, AIC, BIC, or -2 LL, but the idea is the same.↩︎\nThe likelihood contains all the information contained in the data.↩︎\nThis might be called a “probability mass function” for discrete \\(y\\), a “probability density function” for continuous \\(y\\) or as a generic term, or simply the “density”, and the reader should know from context what is meant.↩︎\n\\(\\hat{\\theta}_{MLE} = \\frac{y}{n}\\) and \\(SE\\left( \\hat{\\theta}_{MLE} \\right) = \\sqrt{\\frac{\\hat{\\theta}_{MLE}\\left(1 - \\hat{\\theta}_{MLE}\\right)}{n}}\\). See here.↩︎\nThe integral in the denominator is used generally. If the parameter space of \\(\\theta\\) is discrete, this will be a summation, and if \\(\\theta\\) is a vector, then there will be multiple integrals (and/or summations).↩︎\nAgain, disregard that no priors are truly noninformative and that “noninformative” priors are often a bad idea.↩︎\nFor \\(X \\sim Beta(\\alpha, \\beta)\\), \\[\\begin{align}\nf(x) &= \\frac{\\Gamma(\\alpha + \\beta)}{\\Gamma(\\alpha)\\;\\Gamma(\\beta)} \\;\nx^{\\alpha - 1}\\;(1-x)^{\\beta - 1} \\\\\n&= \\frac{1}{B(\\alpha, \\beta)}\\;x^{\\alpha - 1}\\;(1-x)^{\\beta - 1},\n\\; 0 \\leq x \\leq 1, \\;\\;\\; \\alpha, \\; \\beta &gt; 0\n\\end{align}\\] where \\(\\Gamma(\\cdot)\\) is the Gamma function and \\(B(\\cdot, \\cdot)\\) is the Beta function↩︎\nIt does integrate to 1 with respect to \\(y\\) (see Figure 1), but it does not with respect to \\(\\theta\\), which is why the likelihood cannot be a true probability distribution for \\(\\theta\\).↩︎\nIt should be noted that the marginal distribution is technically dependent on the hyperparameters, e.g., for our examples with hyperpriors \\(\\alpha\\) and \\(\\beta\\) in \\(p(\\theta)\\), \\(f(y)\\) is technically \\(f_{\\alpha, \\beta}(y)\\), but the dependence on the hyperparameters is understood.↩︎\nSee prior predictive checks for setting priors for more complex problems.↩︎\nThe beta-binomial distribution is similar to the binomial distribution in that it gives the probability of observing \\(y\\) successes in \\(n\\) trials. However, while the binomial distribution considers \\(\\theta\\) fixed and known, the beta-binomial distribution assumes \\(\\theta\\) is either unknown or random and incorporates this uncertainty in \\(\\theta\\) by treating \\(\\theta\\) as a draw from a Beta distribution. This uncertainty in \\(\\theta\\) has the effect of giving the beta-binomial a slightly larger variance than the binomial.↩︎\nFor the \\(Beta(1,1)\\) prior, the joint distribution is \\[\n\\begin{align}\nf(y \\; | \\; \\theta)\\;p(\\theta) &= f(y \\;| \\; \\theta) \\times 1 \\\\\n&= f(y \\; | \\; \\theta) \\\\\n&= \\mathcal{L}(\\theta \\; | \\; y)\n\\end{align}\n\\] which we already saw in Section 4.1.2 is 0.143 \\(\\neq 1\\). So the lack of normalization is why frequentist inference can’t talk about the likelihood as a distribution.↩︎",
+    "crumbs": [
+      "Fundamentals",
+      "Bayes",
+      "Intro to Bayesian Inference"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Bayes/what_is_going_on_slr.html",
+    "href": "Content/Fundamentals/Bayes/what_is_going_on_slr.html",
+    "title": "What is Going On? Simple Linear Regression",
+    "section": "",
+    "text": "Code\nlibrary(plotly)\nlibrary(gganimate)\nlibrary(knitr)\nlibrary(kableExtra)\nlibrary(tidybayes)\nlibrary(posterior)\nlibrary(bayesplot)\nlibrary(cmdstanr)\nlibrary(tidyverse)",
+    "crumbs": [
+      "Fundamentals",
+      "Bayes",
+      "What is Going On?",
+      "Simple Linear Regression"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Bayes/what_is_going_on_slr.html#introduction",
+    "href": "Content/Fundamentals/Bayes/what_is_going_on_slr.html#introduction",
+    "title": "What is Going On? Simple Linear Regression",
+    "section": "1 Introduction",
+    "text": "1 Introduction\nThe goal of this document is to —. We’ll use Model 5 from the simple linear regression example illustrating program blocks.\n\n1.1 Reference\n\nThis article is great for showing visualizations in a posterior analysis. I’m drawing extremely heavily from that article for this page, and I highly suggest you read it.\nbayesplot - a package for visualization of Bayesian models",
+    "crumbs": [
+      "Fundamentals",
+      "Bayes",
+      "What is Going On?",
+      "Simple Linear Regression"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Bayes/what_is_going_on_slr.html#data",
+    "href": "Content/Fundamentals/Bayes/what_is_going_on_slr.html#data",
+    "title": "What is Going On? Simple Linear Regression",
+    "section": "2 Data",
+    "text": "2 Data\nRecall the data is of the form \\[\ny_i = \\alpha + \\beta x_i + \\epsilon_i, \\;\\;\\;\\;\\;i = 1, \\ldots, n,\n\\tag{1}\\]\nand we used true values \\(\\alpha = 2\\), \\(\\beta = 3\\), and \\(\\sigma = 6\\) to simulate some data:\n\n\nCode\nset.seed(4384836)\n\nn &lt;- 30\n\nalpha &lt;- 2\nbeta &lt;- 3\nsigma &lt;- 6\n\ndata &lt;- tibble(x = runif(n, 20, 30)) %&gt;% \n  mutate(y = rnorm(n(), alpha + beta*x, sigma))\n\ndata %&gt;% \n  ggplot(aes(x = x, y = y)) +\n  geom_point()\n\n\n\n\n\n\n\n\nFigure 1: Raw data\n\n\n\n\n\n\n2.1 Statistical Model\nWe’ll write down the full statistical model:\n\\[\n\\begin{align}\nY_i \\; | \\; \\alpha, \\beta, \\sigma &\\sim Normal(\\alpha + \\beta x_i, \\;  \\sigma) \\\\\n\\alpha &\\sim Normal(\\mu_\\alpha, sd_\\alpha) \\\\\n\\beta &\\sim Normal(\\mu_\\beta, sd_\\beta) \\\\\n\\sigma &\\sim Half-Normal(\\mu_\\sigma, sd_\\sigma) \\\\\n\\end{align}\n\\] And we will assume weakly informative priors with hyperparameters as follows:\n\n\nTable 1: Hyperparameters\n\n\nHyperparameter\nValue\n\n\n\n\n\\(\\mu_\\alpha\\)\n0\n\n\n\\(sd_\\alpha\\)\n30\n\n\n\\(\\mu_\\beta\\)\n0\n\n\n\\(sd_\\beta\\)\n10\n\n\n\\(\\mu_\\sigma\\)\n0\n\n\n\\(sd_\\sigma\\)\n15",
+    "crumbs": [
+      "Fundamentals",
+      "Bayes",
+      "What is Going On?",
+      "Simple Linear Regression"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Bayes/what_is_going_on_slr.html#stan-model",
+    "href": "Content/Fundamentals/Bayes/what_is_going_on_slr.html#stan-model",
+    "title": "What is Going On? Simple Linear Regression",
+    "section": "3 Stan model",
+    "text": "3 Stan model\nRecall the model:\n\n\nfunctions{\n\n  vector calculate_mu(real intercept, real slope, vector x){\n\n    vector[num_elements(x)] mu = intercept + slope*x;\n    return mu;\n\n  }\n\n}\ndata{\n\n  int&lt;lower = 1&gt; n;\n  array[n] real y;\n  vector[n] x;\n\n  real mu_alpha, mu_beta, mu_sigma;\n  real&lt;lower = 0&gt; sd_alpha, sd_beta, sd_sigma;\n\n  int&lt;lower = 1&gt; n_pred;\n  vector[n_pred] x_pred;\n\n}\nparameters{\n\n  real alpha;\n  real beta;\n  real&lt;lower = 0&gt; sigma;\n\n}\ntransformed parameters{\n\n  vector[n] mu = calculate_mu(alpha, beta, x);\n\n}\nmodel{\n\n  // Priors\n  alpha ~ normal(mu_alpha, sd_alpha);\n  beta ~ normal(mu_beta, sd_beta);\n  sigma ~ normal(mu_sigma, sd_sigma);\n\n  // Likelihood\n  y ~ normal(mu, sigma);\n\n}\ngenerated quantities{\n\n  // PPC - mu is still accessible here, so it doesn't need to be calculated again\n  array[n] real y_ppc = normal_rng(mu, sigma);\n  \n  // Predictions at new points\n  vector[n_pred] y_pred_mean = calculate_mu(alpha, beta, x_pred);\n  array[n_pred] real y_pred = normal_rng(y_pred_mean, sigma);\n  \n  // Log-likelihoods of individual observations\n  vector[n] log_lik;\n  for(i in 1:n){\n    log_lik[i] = normal_lpdf(y[i] | mu[i], sigma);\n  }\n\n}",
+    "crumbs": [
+      "Fundamentals",
+      "Bayes",
+      "What is Going On?",
+      "Simple Linear Regression"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Bayes/what_is_going_on_slr.html#fit",
+    "href": "Content/Fundamentals/Bayes/what_is_going_on_slr.html#fit",
+    "title": "What is Going On? Simple Linear Regression",
+    "section": "4 Fit",
+    "text": "4 Fit\nPre-process the data, define your hyperparameters, compile the model, and fit it:\n\n\nCode\n## model &lt;- cmdstan_model(\"path/to/your/stan/file.stan\")\n\n# New points at which to predict\nx_pred &lt;- seq(20, 30, by = 0.1)\n\nstan_data &lt;- list(n = nrow(data),\n                  y = data$y,\n                  x = data$x,\n                  mu_alpha = 0,\n                  sd_alpha = 30,\n                  mu_beta = 0,\n                  sd_beta = 10,\n                  mu_sigma = 0,\n                  sd_sigma = 15,\n                  n_pred = length(x_pred),\n                  x_pred = x_pred)\n\nfit &lt;- model$sample(data = stan_data,\n                    seed = 112358,\n                    chains = 4,\n                    parallel_chains = 4,\n                    iter_warmup = 1000,\n                    iter_sampling = 1000,\n                    adapt_delta = 0.8,\n                    refresh = 0,\n                    max_treedepth = 10)",
+    "crumbs": [
+      "Fundamentals",
+      "Bayes",
+      "What is Going On?",
+      "Simple Linear Regression"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Bayes/what_is_going_on_slr.html#sec-posterior-summaries",
+    "href": "Content/Fundamentals/Bayes/what_is_going_on_slr.html#sec-posterior-summaries",
+    "title": "What is Going On? Simple Linear Regression",
+    "section": "5 Posterior Summaries",
+    "text": "5 Posterior Summaries\nThere is an endless amount of analysis we can do with our (samples from the) posterior distribution. Here we will focus on basic posterior summaries of parameters and predictions. Particularly relevant to this section is the bayesplot vignette on plotting MCMC draws.\nFirst, let’s just look at what we have (after wrangling it to get it into a nicer format). The following table shows the actual values for each variable for each draw in our MCMC sample:\n\n\nCode\ndraws_df &lt;- fit$draws(format = \"draws_df\")\n\ndraws_df %&gt;% \n  ungroup() %&gt;% \n  mutate(across(where(is.numeric), \\(x) round(x, 3))) %&gt;%\n  group_by(.chain) %&gt;% \n  slice_head(n = 10) %&gt;% \n  relocate(starts_with(\".\"), .after = \"lp__\") %&gt;% \n  DT::datatable()  \n\n\n\n\nTable 1\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nNote\n\n\n\nThis table shows only the first 10 draws from each chain for readability purposes. There are actually \\(4\\;(chains) \\times 1000 \\; (iter\\_sampling) = 4000\\) draws in our sample.\n\n\n\n5.1 Numerical Summaries\nWe can look at some numerical summaries of the parameters:\n\n\n\n\n\n\n\n\nImportant\n\n\n\nWe should look at some MCMC diagnostics first, but we’ll just assume everything looks fine for now.\n\n\n\n\nCode\nsummary &lt;- summarize_draws(fit$draws(c(\"alpha\", \"beta\", \"sigma\")), \n                           mean, median, sd, mcse_mean,\n                           ~quantile2(.x, probs = c(0.025, 0.975)), rhat,\n                           ess_bulk, ess_tail)\n\nsummary %&gt;%\n  mutate(rse = sd/mean*100) %&gt;% \n  select(variable, mean, sd, mcse_mean, q2.5, median, q97.5, rse, rhat, \n         starts_with(\"ess\")) %&gt;% \n  mutate(across( -c(rhat, variable), \\(x) round(x, 2)), \n         rhat = round(rhat, 3),\n         variable = str_c('$\\\\', variable, '$')) %&gt;%\n  knitr::kable(col.names = c(\"Variable\", \"Mean\", \"Std. Dev.\", \"$MCSE_{mean}$\", \"2.5%\",\n                             \"Median\", \"97.5%\", \"RSE\", \"$\\\\hat{R}$\", \"$ESS_{Bulk}$\",\n                             \"$ESS_{Tail}$\")) \n\n\n\n\nTable 2: Numerical summaries\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nVariable\nMean\nStd. Dev.\n\\(MCSE_{mean}\\)\n2.5%\nMedian\n97.5%\nRSE\n\\(\\hat{R}\\)\n\\(ESS_{Bulk}\\)\n\\(ESS_{Tail}\\)\n\n\n\n\n\\(\\alpha\\)\n-5.11\n9.32\n0.29\n-23.77\n-4.90\n13.34\n-182.37\n1.005\n1181.84\n767.67\n\n\n\\(\\beta\\)\n3.27\n0.39\n0.01\n2.50\n3.27\n4.04\n11.87\n1.005\n1212.17\n768.00\n\n\n\\(\\sigma\\)\n5.86\n0.83\n0.02\n4.53\n5.76\n7.76\n14.16\n1.002\n1489.87\n1428.21\n\n\n\n\n\n\n\n\n\n\n5.2 Density Plots\nOr you can look at density plots of the parameters:\n\n\nCode\nmcmc_dens(fit$draws(c(\"alpha\", \"beta\", \"sigma\")),\n          facet_args = list(labeller = ggplot2::label_parsed))\n\n\n\n\n\n\n\n\nFigure 2: Density plots for the model parameters\n\n\n\n\n\n\n\n5.3 Pairs Plots\nOr a pairs plot to see pairwise joint distributions:\n\n\n\n\n\n\n\n\nWarning\n\n\n\nIt’s beyond the scope of this page, but notice the high correlation between \\(\\alpha\\) and \\(\\beta\\) and the high uncertainty and MCSE in \\(\\alpha\\) in Table 2. That’s why we centered \\(x\\) in Model 6 (and for interpretability). You’ll see a much nicer posterior distribution if you fit that one. Try it!\n\n\n\nBasicWith Greek Letters\n\n\n\n\nCode\nmcmc_pairs(fit$draws(c(\"alpha\", \"beta\", \"sigma\")))  \n\n\n\n\n\n\n\n\n\n\n\n\n\nCode\npairs_plot &lt;- mcmc_pairs(fit$draws(c(\"alpha\", \"beta\", \"sigma\")))\n\npairs_plot$bayesplots[[1]] &lt;- pairs_plot$bayesplots[[1]] + \n  labs(subtitle = latex2exp::TeX(\"$\\\\alpha$\"))\npairs_plot$bayesplots[[5]] &lt;- pairs_plot$bayesplots[[5]] + \n  labs(subtitle = latex2exp::TeX(\"$\\\\beta$\"))\npairs_plot$bayesplots[[9]] &lt;- pairs_plot$bayesplots[[9]] + \n  labs(subtitle = latex2exp::TeX(\"$\\\\sigma$\"))\n\nbayesplot_grid(plots = pairs_plot$bayesplots)\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n5.4 3-D Plots\n\n\n\n\n\n\nWarning\n\n\n\n3-D plots are generally considered bad practice, and I don’t particularly find 3-D plots all that useful - they’re just too hard to see and interpret, but you can make that decision for yourself.\n\n\nYou can also look at 3-dimensional plots1, although they’re not easy to interpret.\n\n\nCode\nfig &lt;- plot_ly(draws_df,\n               x = ~alpha, y = ~beta, z = ~sigma) %&gt;%\n  add_markers(marker = list(opacity = 0.5,\n                            size = 2)) %&gt;%\n  layout(scene = list(xaxis = list(title = 'alpha'),\n                      yaxis = list(title = 'beta'),\n                      zaxis = list(title = 'sigma')))\n\n\nfig &lt;- plot_ly(type = \"scatter3d\", mode = \"markers\") %&gt;%\n  add_trace(x = draws_df$alpha, y = draws_df$beta, z = draws_df$sigma,\n            text = paste0(\"&lt;/br&gt;\\u03B1: \", draws_df$alpha, \n                          \"&lt;/br&gt;\\u03B2: \", draws_df$beta, \n                          \"&lt;/br&gt;\\u03C3: \", draws_df$sigma),\n            hoverinfo = \"text\",\n            marker = list(size = 2,\n                          opacity = 0.5,\n                          color = \"blue\")) %&gt;%\n  layout(title = \"3D Joint Posterior\",\n         scene = list(xaxis = list(title = \"\\u03B1\"),\n                      yaxis = list(title = \"\\u03B2\"),\n                      zaxis = list(title = \"\\u03C3\")))\n\nfig\n\n\n\n\n\n\n\n\nFigure 3: 3-dimensional plot of the posterior distribution\n\n\n\n\nThe main point of this is to show that we have a joint posterior that we can’t visualize when looking at only the basic marginal density and pairwise joint density plots.\n\n\n5.5 Summary\nThe most basic idea of a posterior distribution is that it describes how likely a given combination of parameters is conditional on the data. For our example, a parameter combination \\(\\{\\alpha, \\beta, \\sigma\\} = \\{-5, 3.2, 6\\}\\) seems to be fairly likely, \\(\\{-20, 4, 6\\}\\) is possible but less likely, and \\(\\{-20, 3.2, 6\\}\\) is for all intents and purposes impossible. While it is informative to look at numerical summaries and marginal and pairwise joint posteriors, we have to be go beyond these plots and summaries to get the bigger picture.",
+    "crumbs": [
+      "Fundamentals",
+      "Bayes",
+      "What is Going On?",
+      "Simple Linear Regression"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Bayes/what_is_going_on_slr.html#sec-posterior-predictions",
+    "href": "Content/Fundamentals/Bayes/what_is_going_on_slr.html#sec-posterior-predictions",
+    "title": "What is Going On? Simple Linear Regression",
+    "section": "6 Posterior Predictions",
+    "text": "6 Posterior Predictions\nIn Section 5 we looked at the posterior distribution on the parameter scale. If we simulate data using draws from our posterior distribution, then we can visualize the posterior distribution on the data scale - this is precisely what we have done with y_pred_mean (posterior predicted means) and y_pred (posterior predictions = posterior predicted mean + error)2.\nSince the posterior distribution weights each possible combination of \\((\\alpha, \\beta, \\sigma)\\) based on how likely it is conditioned on the observed data, the predictions derived/simulated from these parameter combinations are also weighted based on how likely they are (conditioned on the observed data).\nAfter collecting data, we have fit a model and sampled from the posterior (and posterior predictive) distribution. Now we can do some visualizations.\n\n6.1 Posterior Predicted Mean\nWe’ll first look at the posterior predicted mean - basically \\(p(\\alpha + \\beta \\tilde{x} \\; | \\; y)\\) for our grid of new \\(\\tilde{x}\\) (x_pred) with varying levels of probability intervals:\n\n\nCode\npreds_df &lt;- draws_df %&gt;%\n  spread_draws(c(y_pred_mean, y_pred)[i]) %&gt;% \n  ungroup() %&gt;% \n  mutate(x_pred = stan_data$x_pred[i])\n\npreds_df %&gt;% \n  ggplot() +\n  stat_lineribbon(aes(x = x_pred, y = y_pred_mean)) +\n  geom_point(data = data,\n             mapping = aes(x = x, y = y)) +\n  scale_fill_brewer() +\n  ylab(\"y\") +\n  xlab(\"x\")\n\n\n\n\n\n\n\n\n\nBut we can do even better to visualize how our parameters relate to our predictions. We know that the \\(i^{th}\\) draw of parameters from the posterior, denoted \\((\\alpha^{[i]}, \\beta^{[i]}, \\sigma^{[i]})\\), has been transformed to the data space by y_pred_mean\\(\\!^{[i]}=\\alpha^{[i]} + \\beta^{[i]}\\tilde{x}\\) and y_pred\\(\\!^{[i]}=\\) y_pred_mean\\(\\!^{[i]} + \\epsilon, \\;\\; \\epsilon \\sim N(0, \\sigma^{[i]})\\), so we now have draws of y_pred and y_pred_mean.\n\n\nCode\n(p_pred_mean_spaghetti &lt;- preds_df %&gt;% \n  group_by(.chain) %&gt;% \n  filter(.iteration &lt;= 10) %&gt;% \n  ggplot() +\n  geom_line(aes(x = x_pred, y = y_pred_mean, group = .draw), color = \"blue\") +\n  geom_point(data = data,\n             mapping = aes(x = x, y = y)) +\n  ylab(\"y\") +\n  xlab(\"x\") +\n  transition_states(.draw, 0, 1) +\n  shadow_mark(future = TRUE, color = \"gray50\", alpha = 0.075))\n\n\n\n\n\n\n\n\nFigure 4: Highlighting each parameter draw to data space as predicted mean",
+    "crumbs": [
+      "Fundamentals",
+      "Bayes",
+      "What is Going On?",
+      "Simple Linear Regression"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Bayes/what_is_going_on_slr.html#posterior-predictions",
+    "href": "Content/Fundamentals/Bayes/what_is_going_on_slr.html#posterior-predictions",
+    "title": "What is Going On? Simple Linear Regression",
+    "section": "7 Posterior Predictions",
+    "text": "7 Posterior Predictions\nWe can look at prediction intervals with varying levels of probability intervals:\n\n\nCode\npreds_df %&gt;% \n  ggplot() +\n  stat_lineribbon(aes(x = x_pred, y = y_pred)) +\n  geom_point(data = data,\n             mapping = aes(x = x, y = y)) +\n  scale_fill_brewer() +\n  ylab(\"y\") +\n  xlab(\"x\")\n\n\n\n\n\n\n\n\nFigure 5\n\n\n\n\n\nAt every value of \\(\\tilde{x}\\), we have a posterior predictive distribution. Here’s what that looks like for a select few values of \\(\\tilde{x}\\):\n\n\nCode\n{preds_df %&gt;% \n  filter(x_pred %in% seq(20, 30, by = 2))} %&gt;% \n  ggplot() +\n  geom_line(. %&gt;% \n              group_by(x_pred) %&gt;% \n              summarize(mean = mean(y_pred_mean)),\n            mapping = aes(x = x_pred, y = mean)) +\n  stat_halfeye(aes(x = x_pred, y = y_pred, group = x_pred),\n               scale = 0.5, interval_size = 2, .width = 0.95,\n               point_interval = mean_qi, normalize = \"xy\",\n               alpha = 0.2, fill = \"blue\") + \n  geom_point(data = data,\n             mapping = aes(x = x, y = y)) +\n  ylab(\"y\") +\n  xlab(\"x\") +\n  coord_cartesian(ylim = c(30, 120))\n\n\n\n\n\n\n\n\n\nAs an aside, this plot should illustrate the difference between the posterior predicted mean (red) and posterior predictions (blue) - the intervals are much bigger for the predictions to the addition of residual variability.\n\n\nCode\n{preds_df %&gt;% \n  filter(x_pred %in% seq(20, 30, by = 2))} %&gt;% \n  ggplot() +\n  geom_line(. %&gt;% \n              group_by(x_pred) %&gt;% \n              summarize(mean = mean(y_pred_mean)),\n            mapping = aes(x = x_pred, y = mean)) +\n  stat_halfeye(aes(x = x_pred, y = y_pred, group = x_pred),\n               scale = 0.5, interval_size = 2, .width = 0.95,\n               point_interval = mean_qi, normalize = \"xy\",\n               alpha = 0.2, fill = \"blue\") + \n  stat_halfeye(aes(x = x_pred, y = y_pred_mean, group = x_pred),\n               scale = 0.75, interval_size = 2, .width = 0.95,\n               point_interval = mean_qi, normalize = \"xy\",\n               alpha = 0.2, side = \"left\", fill = \"red\") +\n  geom_point(data = data,\n             mapping = aes(x = x, y = y)) +\n  ylab(\"y\") +\n  xlab(\"x\") +\n  coord_cartesian(ylim = c(30, 120))",
+    "crumbs": [
+      "Fundamentals",
+      "Bayes",
+      "What is Going On?",
+      "Simple Linear Regression"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Bayes/what_is_going_on_slr.html#summary",
+    "href": "Content/Fundamentals/Bayes/what_is_going_on_slr.html#summary",
+    "title": "What is Going On? Simple Linear Regression",
+    "section": "8 Summary",
+    "text": "8 Summary\nHopefully this document gives you a bit more understanding of the posterior distribution and how it relates to posterior predictions.",
+    "crumbs": [
+      "Fundamentals",
+      "Bayes",
+      "What is Going On?",
+      "Simple Linear Regression"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Bayes/what_is_going_on_slr.html#footnotes",
+    "href": "Content/Fundamentals/Bayes/what_is_going_on_slr.html#footnotes",
+    "title": "What is Going On? Simple Linear Regression",
+    "section": "Footnotes",
+    "text": "Footnotes\n\n\nThis plot is interactive. Play around with it.↩︎\nAnd y_ppc. y_pred and y_ppc are distributed the same, except y_ppc are replicates of the data at observed values of \\(x\\), while y_pred are simulations at new values of \\(x\\), denoted \\(\\tilde{x}\\) for the remainder of this document.↩︎",
+    "crumbs": [
+      "Fundamentals",
+      "Bayes",
+      "What is Going On?",
+      "Simple Linear Regression"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/bayes.html",
+    "href": "Content/Fundamentals/bayes.html",
+    "title": "A Quick Note on Bayesian Methods",
+    "section": "",
+    "text": "These documents are meant to introduce you to the most basic elements of Bayesian inference. They are in no way comprehensive, but they will hopefully give you a platform of understanding so that you can dive deeper if you want.\nHere are a few references that you may find useful:\n\nBayesian Data Analysis\nStatistical Rethinking\nRegression and Other Stories\nJose Storopoli’s slides on Bayesian Statistics\nStan Discourse\nBayesian Modeling and Computation in Python",
+    "crumbs": [
+      "Fundamentals",
+      "Bayes"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/bayes.html#introduction",
+    "href": "Content/Fundamentals/bayes.html#introduction",
+    "title": "A Quick Note on Bayesian Methods",
+    "section": "",
+    "text": "These documents are meant to introduce you to the most basic elements of Bayesian inference. They are in no way comprehensive, but they will hopefully give you a platform of understanding so that you can dive deeper if you want.\nHere are a few references that you may find useful:\n\nBayesian Data Analysis\nStatistical Rethinking\nRegression and Other Stories\nJose Storopoli’s slides on Bayesian Statistics\nStan Discourse\nBayesian Modeling and Computation in Python",
+    "crumbs": [
+      "Fundamentals",
+      "Bayes"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/bayes.html#statistical-inference",
+    "href": "Content/Fundamentals/bayes.html#statistical-inference",
+    "title": "A Quick Note on Bayesian Methods",
+    "section": "2 Statistical Inference",
+    "text": "2 Statistical Inference\nSome people think a lot about the philosophy of “statistical inference.” I don’t.\n\n\n\n\n\nHere are two definitions that keep it simple but sum it up pretty well:\n\n“Statistical inference is concerned with drawing conclusions, from numerical data, about quantities that are not observed.” (Gelman et al. 2013, 4)\n“The process of drawing conclusions about the nature of some system on the basis of data subject to random variation.” (Upton and Cook 2014)\n\nIn practice for us as pharmacometricians, this means\n\nIn any experiment, observational study, or clinical trial, we are using sample data to try to answer some question(s) about the population of interest.\nWe collect (sample) data \\(\\left(Y\\right)\\) to estimate parameters \\(\\left(\\theta\\right)\\) and summarize our uncertainty in those estimates to say something/make decisions about the “population.”\nThese estimates can be either quantities that are not observable (e.g. the effect of poor kidney function on drug clearance) or quantities that are potentially observable (e.g. drug concentration for potential future patients with a range of kidney function).\nHowever, learning from the data is complicated by the natural variability of the measurements, so we can’t find the “correct” values of the parameters.\nWe want to quantify our knowledge/uncertainty with point estimates, i.e., “typical” values, and uncertainty estimates such as standard errors, CV%, confidence/credible intervals, and prediction intervals.\n\n\n2.1 Bayesian Inference vs. Classical Inference\nThere is a long-standing debateabout Bayesian vs. Classical viewpoints on inference. I don’t get into that here. There’s plenty out there if you want to find material that argues one in favor of the other.\nHere are some things that typically characterize the differences between Bayesian inference and classical inference1:\n\nBayesian vs. Classical\n\n\n\n\n\n\n\n\nBayesian\nClassical\n\n\n\n\nData\nFixed\nRandom\n\n\nParameters\nRandom\nFixed\n\n\nInference\nDirectly on parameters\nIndirectly on parameters through the sampling distribution of the data\n\n\nProbability\nSubjective (through priors)\nObjective (no priors)\n\n\nUncertainty\nProbability distributions - \\(p(\\theta|y)\\)\nConfidence intervals - \\(p(y | \\theta)\\)\n\n\n\nBut there can be some ambiguity here. One can argue that the constraint parameter that penalizes the size of regression coefficients in regularization methods like the LASSO and ridge regression (Hastie, Tibshirani, and Friedman 2009) incorporates prior information - each of their estimators can be interpreted as the posterior mode when the regression parameters have a certain prior distribution (Laplace for LASSO, Gaussian for ridge regression). Does that make LASSO and ridge regression Bayesian? Or if I provide an “objective noninformative prior”2, does that make my analysis non-Bayesian, even if I have a full posterior distribution? Are empirical Bayes estimates (EBEs) Bayesian if they don’t have a full posterior distribution?\nI’m not the Bayes police, and I don’t think the terminology is all that important in the grand scheme of things, so I won’t answer those questions for everybody. But for all the content on this website, generally what I call “Bayesian” involves some amount of prior information \\((none &lt; some \\leq a\\;lot)\\) and a full posterior distribution.",
+    "crumbs": [
+      "Fundamentals",
+      "Bayes"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/bayes.html#footnotes",
+    "href": "Content/Fundamentals/bayes.html#footnotes",
+    "title": "A Quick Note on Bayesian Methods",
+    "section": "Footnotes",
+    "text": "Footnotes\n\n\nThis table pulls heavily from slide 82 here. Thanks, Jose.↩︎\nFor now, disregard that no priors are truly noninformative. and that “noninformative” priors are often a bad idea.↩︎",
+    "crumbs": [
+      "Fundamentals",
+      "Bayes"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Bayes/conjugate_priors.html",
+    "href": "Content/Fundamentals/Bayes/conjugate_priors.html",
+    "title": "Conjugate Priors",
+    "section": "",
+    "text": "This is an intro to conjugate priors\n\n\n\n Back to top",
+    "crumbs": [
+      "Fundamentals",
+      "Bayes",
+      "Conjugate Priors"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Bayes/what_is_going_on_pk.html",
+    "href": "Content/Fundamentals/Bayes/what_is_going_on_pk.html",
+    "title": "What is Going On? Single Individual PK",
+    "section": "",
+    "text": "Stay tuned!\n\n\n\n Back to top",
+    "crumbs": [
+      "Fundamentals",
+      "Bayes",
+      "What is Going On?",
+      "Single Individual PK"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/what_is_going_on.html",
+    "href": "Content/Fundamentals/what_is_going_on.html",
+    "title": "What is Going On?",
+    "section": "",
+    "text": "This section gives some illustrations that should help understand what is going on in the posterior in Bayesian inference.\n\n\n\n Back to top",
+    "crumbs": [
+      "Fundamentals",
+      "Bayes",
+      "What is Going On?"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Stan/simple_linear_regression.html",
+    "href": "Content/Fundamentals/Stan/simple_linear_regression.html",
+    "title": "Program Blocks with Simple Linear Regression",
+    "section": "",
+    "text": "Code\nlibrary(cmdstanr)\nlibrary(tidyverse)",
+    "crumbs": [
+      "Fundamentals",
+      "Stan",
+      "Program Block Examples",
+      "Simple Linear Regression"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Stan/simple_linear_regression.html#introduction",
+    "href": "Content/Fundamentals/Stan/simple_linear_regression.html#introduction",
+    "title": "Program Blocks with Simple Linear Regression",
+    "section": "1 Introduction",
+    "text": "1 Introduction\nWe’ll illustrate the basic components of a Stan program with a simple linear regression - the model is easy to understand so understanding the model doesn’t get in the way of learning basics of Stan code.\nI’ll start out as simply as possible and then add tips and elements that can be carried over to other models.\n\n\n\n\n\n\nNote\n\n\n\nMuch of what is on this page isn’t necessarily a best practice. In fact, I wouldn’t write this model in raw Stan at all. I’d use rstanarm or brms - they both provide a ton of functionality that takes unnecessary extra effort to do in raw Stan. But I’ll write this in Stan in such a way as to highlight certain aspects of a Stan program and give tips that can be carried over to other models.",
+    "crumbs": [
+      "Fundamentals",
+      "Stan",
+      "Program Block Examples",
+      "Simple Linear Regression"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Stan/simple_linear_regression.html#data",
+    "href": "Content/Fundamentals/Stan/simple_linear_regression.html#data",
+    "title": "Program Blocks with Simple Linear Regression",
+    "section": "2 Data",
+    "text": "2 Data\nFirst we’ll create some data of the form \\[\ny_i = \\alpha + \\beta x_i + \\epsilon_i, \\;\\;\\;\\;\\;i = 1, \\ldots, n,\n\\]\nand we’ll use true values \\(\\alpha = 2\\), \\(\\beta = 3\\), and \\(\\sigma = 6\\).\n\n\nCode\nset.seed(4384836)\n\nn &lt;- 30\n\nalpha &lt;- 2\nbeta &lt;- 3\nsigma &lt;- 6\n\ndata &lt;- tibble(x = runif(n, 20, 30)) %&gt;% \n  mutate(y = rnorm(n(), alpha + beta*x, sigma))\n\ndata %&gt;% \n  ggplot(aes(x = x, y = y)) +\n  geom_point()\n\n\n\n\n\n\n\n\nFigure 1: Raw data",
+    "crumbs": [
+      "Fundamentals",
+      "Stan",
+      "Program Block Examples",
+      "Simple Linear Regression"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Stan/simple_linear_regression.html#model-1---as-simple-as-possible",
+    "href": "Content/Fundamentals/Stan/simple_linear_regression.html#model-1---as-simple-as-possible",
+    "title": "Program Blocks with Simple Linear Regression",
+    "section": "3 Model 1 - As Simple as Possible",
+    "text": "3 Model 1 - As Simple as Possible\nFirst, we will write out the model as simply as possible with no frills. Don’t write it this way in practice - use some of the tips shown later on this page.\n\n3.1 Statistical Model\nWe’ll write down the full statistical model:\n\\[\n\\begin{align}\nY_i \\; | \\; \\alpha, \\beta, \\sigma &\\sim Normal(\\alpha + \\beta x_i, \\;  \\sigma) \\\\\n\\alpha &\\sim Normal(0, 30) \\\\\n\\beta &\\sim Normal(0, 10) \\\\\n\\sigma &\\sim Half-Normal(0, 15) \\\\\n\\end{align}\n\\]\n\n\n\n\n\n\nNote\n\n\n\nThe above normal distributions are parameterized with the standard deviation rather than the variance to remain consistent with the parameterization that Stan and R use.\n\n\n\n\n3.2 Stan Model\n\ndata{\n  \n  int&lt;lower = 1&gt; n;\n  array[n] real y;\n  vector[n] x;\n  \n}\nparameters{\n  \n  real alpha;\n  real beta;\n  real&lt;lower = 0&gt; sigma;\n\n}\nmodel{\n  \n  // Priors\n  alpha ~ normal(0, 30);\n  beta ~ normal(0, 10);\n  sigma ~ normal(0, 15);\n  \n  // Likelihood\n  y ~ normal(alpha + beta*x, sigma);\n\n}\n\nAs can be seen in the model, the data block is where we input the data, the parameters block is where we declare the parameters, and the model block is where we write the model.\n\n\n\n\n\n\nImportant\n\n\n\nMake sure to declare any constraints in the parameter block. Hence, the lower bound on \\(\\sigma\\) - real&lt;lower = 0&gt; sigma;.\n\n\n\n\n3.3 Fit\nPre-process the data1, compile the model2, and fit it:\n\n## model_simple &lt;- cmdstan_model(\"path/to/your/stan/file_simple.stan\")\n\nstan_data &lt;- list(n = nrow(data),\n                  y = data$y,\n                  x = data$x)\n\nfit_simple &lt;- model_simple$sample(data = stan_data,\n                                  seed = 112358,\n                                  chains = 4,\n                                  parallel_chains = 4,\n                                  iter_warmup = 1000,\n                                  iter_sampling = 1000,\n                                  adapt_delta = 0.8,\n                                  refresh = 0,\n                                  max_treedepth = 10)\n\nRunning MCMC with 4 parallel chains...\n\nChain 1 finished in 0.1 seconds.\nChain 2 finished in 0.1 seconds.\nChain 3 finished in 0.1 seconds.\nChain 4 finished in 0.1 seconds.\n\nAll 4 chains finished successfully.\nMean chain execution time: 0.1 seconds.\nTotal execution time: 0.2 seconds.\n\n\n\n\n3.4 Posterior Summary\nLook at the posterior summary:\n\nfit_simple$summary() \n\n# A tibble: 4 × 10\n  variable   mean median    sd   mad     q5    q95  rhat ess_bulk ess_tail\n  &lt;chr&gt;     &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;\n1 lp__     -66.1  -65.8  1.29  1.08  -68.6  -64.7   1.00    1235.    1746.\n2 alpha     -4.84  -4.86 9.39  9.47  -20.2   10.1   1.00    1278.    1286.\n3 beta       3.26   3.26 0.391 0.395   2.64   3.89  1.00    1278.    1349.\n4 sigma      5.94   5.84 0.867 0.808   4.71   7.54  1.00    1236.    1332.",
+    "crumbs": [
+      "Fundamentals",
+      "Stan",
+      "Program Block Examples",
+      "Simple Linear Regression"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Stan/simple_linear_regression.html#model-2---dont-hardcode-things-if-you-might-want-to-adjust-them",
+    "href": "Content/Fundamentals/Stan/simple_linear_regression.html#model-2---dont-hardcode-things-if-you-might-want-to-adjust-them",
+    "title": "Program Blocks with Simple Linear Regression",
+    "section": "4 Model 2 - Don’t Hardcode Things If You Might Want to Adjust Them",
+    "text": "4 Model 2 - Don’t Hardcode Things If You Might Want to Adjust Them\nYou’ll notice in the previous model that we hardcoded the hyperparameters for the priors on \\(\\alpha, \\; \\beta,\\) and \\(\\sigma\\). That’s generally not great practice - every time you want to change one of these hyperparameters, you have to recompile the model. Instead, declare these hyperparameters in the data block and input them with the observed data.\n\n\n\n\n\n\nTip\n\n\n\nIt’s easier for your workflow to hardcode only things that you willl never change for any reason.\n\n\n\n4.1 Statistical Model\nWe’ll write down the full statistical model:\n\\[\n\\begin{align}\nY_i \\; | \\; \\alpha, \\beta, \\sigma &\\sim Normal(\\alpha + \\beta x_i, \\;  \\sigma) \\\\\n\\alpha &\\sim Normal(\\mu_\\alpha, sd_\\alpha) \\\\\n\\beta &\\sim Normal(\\mu_\\beta, sd_\\beta) \\\\\n\\sigma &\\sim Half-Normal(\\mu_\\sigma, sd_\\sigma) \\\\\n\\end{align}\n\\]\n\n\n4.2 Stan Model\n\ndata{\n  \n  int&lt;lower = 1&gt; n;\n  array[n] real y;\n  vector[n] x;\n  \n  real mu_alpha, mu_beta, mu_sigma;\n  real&lt;lower = 0&gt; sd_alpha, sd_beta, sd_sigma;\n  \n}\nparameters{\n  \n  real alpha;\n  real beta;\n  real&lt;lower = 0&gt; sigma;\n\n}\nmodel{\n  \n  // Priors\n  alpha ~ normal(mu_alpha, sd_alpha);\n  beta ~ normal(mu_beta, sd_beta);\n  sigma ~ normal(mu_sigma, sd_sigma);\n  \n  // Likelihood\n  y ~ normal(alpha + beta*x, sigma);\n\n}\n\n\n\n4.3 Fit\nPre-process the data, choose your hyperparameters, compile the model, and fit it:\n\n## model_no_hardcoding &lt;- cmdstan_model(\"path/to/your/stan/file_no_hardcoding.stan\")\n\nstan_data &lt;- list(n = nrow(data),\n                  y = data$y,\n                  x = data$x,\n                  mu_alpha = 0,\n                  sd_alpha = 30,\n                  mu_beta = 0,\n                  sd_beta = 10,\n                  mu_sigma = 0,\n                  sd_sigma = 15)\n\nfit_no_hardcoding &lt;- model_no_hardcoding$sample(data = stan_data,\n                                                seed = 112358,\n                                                chains = 4,\n                                                parallel_chains = 4,\n                                                iter_warmup = 1000,\n                                                iter_sampling = 1000,\n                                                adapt_delta = 0.8,\n                                                refresh = 0,\n                                                max_treedepth = 10)\n\nRunning MCMC with 4 parallel chains...\n\nChain 1 finished in 0.1 seconds.\nChain 2 finished in 0.1 seconds.\nChain 3 finished in 0.1 seconds.\nChain 4 finished in 0.1 seconds.\n\nAll 4 chains finished successfully.\nMean chain execution time: 0.1 seconds.\nTotal execution time: 0.1 seconds.\n\n\n\n\n4.4 Posterior Summary\nLook at the posterior summary:\n\nfit_no_hardcoding$summary() \n\n# A tibble: 4 × 10\n  variable   mean median    sd   mad     q5    q95  rhat ess_bulk ess_tail\n  &lt;chr&gt;     &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;\n1 lp__     -66.1  -65.8  1.29  1.08  -68.6  -64.7   1.00    1235.    1746.\n2 alpha     -4.84  -4.86 9.39  9.47  -20.2   10.1   1.00    1278.    1286.\n3 beta       3.26   3.26 0.391 0.395   2.64   3.89  1.00    1278.    1349.\n4 sigma      5.94   5.84 0.867 0.808   4.71   7.54  1.00    1236.    1332.\n\n\n\n\n4.5 Change the Hyperparameters\nNow if I want, I can experiment with different values for the hyperparameters by changing my stan_data and re-fit the model with no extra compilation necessary:\n\nstan_data$mu_alpha &lt;- pi\nstan_data$sd_alpha &lt;- exp(sqrt(8))\nstan_data$mu_beta &lt;- 2 \nstan_data$sd_beta &lt;- 5 \nstan_data$sd_sigma &lt;- 8 \n  \nfit_no_hardcoding_2 &lt;- model_no_hardcoding$sample(data = stan_data,\n                                                  seed = 112358,\n                                                  chains = 4,\n                                                  parallel_chains = 4,\n                                                  iter_warmup = 1000,\n                                                  iter_sampling = 1000,\n                                                  adapt_delta = 0.8,\n                                                  refresh = 0,\n                                                  max_treedepth = 10)\n\nRunning MCMC with 4 parallel chains...\n\nChain 1 finished in 0.1 seconds.\nChain 2 finished in 0.1 seconds.\nChain 3 finished in 0.1 seconds.\nChain 4 finished in 0.1 seconds.\n\nAll 4 chains finished successfully.\nMean chain execution time: 0.1 seconds.\nTotal execution time: 0.1 seconds.\n\nfit_no_hardcoding_2$summary() \n\n# A tibble: 4 × 10\n  variable   mean median    sd   mad     q5    q95  rhat ess_bulk ess_tail\n  &lt;chr&gt;     &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;\n1 lp__     -66.3  -65.9  1.28  0.978 -68.9  -64.9   1.00    1323.    1449.\n2 alpha     -3.20  -3.41 8.77  8.62  -17.1   11.3   1.00    1060.    1185.\n3 beta       3.20   3.20 0.365 0.358   2.59   3.77  1.00    1061.    1287.\n4 sigma      5.85   5.76 0.781 0.763   4.74   7.28  1.00    1679.    1670.",
+    "crumbs": [
+      "Fundamentals",
+      "Stan",
+      "Program Block Examples",
+      "Simple Linear Regression"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Stan/simple_linear_regression.html#model-3---keep-the-mean-prediction-mu_i-alpha-beta-x_i",
+    "href": "Content/Fundamentals/Stan/simple_linear_regression.html#model-3---keep-the-mean-prediction-mu_i-alpha-beta-x_i",
+    "title": "Program Blocks with Simple Linear Regression",
+    "section": "5 Model 3 - Keep the Mean Prediction (\\(\\mu_i = \\alpha + \\beta x_i\\))",
+    "text": "5 Model 3 - Keep the Mean Prediction (\\(\\mu_i = \\alpha + \\beta x_i\\))\nYou’ll notice in the posterior summaries above (provided by the $summary() call) that we are getting posterior summaries for lp__, alpha, beta, and sigma. We might want to keep the linear prediction, \\(\\mu_i = \\alpha + \\beta x_i\\). The best way to do this is to put it in transformed parameters.\n\n5.1 Statistical Model\nWe’ll write down the full statistical model3:\n\\[\n\\begin{align}\nY_i \\; | \\; \\alpha, \\beta, \\sigma &\\sim Normal(\\mu_i, \\;  \\sigma) \\\\\n\\alpha &\\sim Normal(\\mu_\\alpha, sd_\\alpha) \\\\\n\\beta &\\sim Normal(\\mu_\\beta, sd_\\beta) \\\\\n\\sigma &\\sim Half-Normal(\\mu_\\sigma, sd_\\sigma) \\\\\n\\mu_i &= \\alpha + \\beta x_i\n\\end{align}\n\\]\n\n\n5.2 Stan Model\n\ndata{\n  \n  int&lt;lower = 1&gt; n;\n  array[n] real y;\n  vector[n] x;\n  \n  real mu_alpha, mu_beta, mu_sigma;\n  real&lt;lower = 0&gt; sd_alpha, sd_beta, sd_sigma;\n  \n}\nparameters{\n  \n  real alpha;\n  real beta;\n  real&lt;lower = 0&gt; sigma;\n\n}\ntransformed parameters{\n\n  vector[n] mu = alpha + beta*x;\n\n}\nmodel{\n  \n  // Priors\n  alpha ~ normal(mu_alpha, sd_alpha);\n  beta ~ normal(mu_beta, sd_beta);\n  sigma ~ normal(mu_sigma, sd_sigma);\n  \n  // Likelihood\n  y ~ normal(mu, sigma);\n\n}\n\n\n\n5.3 Fit\nPre-process the data, choose your hyperparameters, compile the model, and fit it:\n\n## model_return_mu &lt;- cmdstan_model(\"path/to/your/stan/file_return_mu.stan\")\n\nstan_data &lt;- list(n = nrow(data),\n                  y = data$y,\n                  x = data$x,\n                  mu_alpha = 0,\n                  sd_alpha = 30,\n                  mu_beta = 0,\n                  sd_beta = 10,\n                  mu_sigma = 0,\n                  sd_sigma = 15)\n\nfit_return_mu &lt;- model_return_mu$sample(data = stan_data,\n                                        seed = 112358,\n                                        chains = 4,\n                                        parallel_chains = 4,\n                                        iter_warmup = 1000,\n                                        iter_sampling = 1000,\n                                        adapt_delta = 0.8,\n                                        refresh = 0,\n                                        max_treedepth = 10)\n\nRunning MCMC with 4 parallel chains...\n\nChain 1 finished in 0.1 seconds.\nChain 2 finished in 0.1 seconds.\nChain 3 finished in 0.1 seconds.\nChain 4 finished in 0.1 seconds.\n\nAll 4 chains finished successfully.\nMean chain execution time: 0.1 seconds.\nTotal execution time: 0.1 seconds.\n\n\n\n\n5.4 Posterior Summary\nLook at the posterior summary:\n\nfit_return_mu$summary() \n\n# A tibble: 34 × 10\n   variable   mean median    sd   mad     q5    q95  rhat ess_bulk ess_tail\n   &lt;chr&gt;     &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;\n 1 lp__     -66.0  -65.7  1.27  0.999 -68.5  -64.7   1.00    1336.    1665.\n 2 alpha     -5.49  -5.62 9.20  8.90  -20.2    9.86  1.00    1169.    1223.\n 3 beta       3.29   3.30 0.384 0.371   2.65   3.91  1.00    1176.    1223.\n 4 sigma      5.92   5.83 0.815 0.799   4.77   7.40  1.00    1594.    1727.\n 5 mu[1]     78.6   78.6  1.26  1.22   76.6   80.7   1.00    2734.    2503.\n 6 mu[2]     71.9   71.9  1.06  1.04   70.2   73.6   1.00    3980.    2155.\n 7 mu[3]     83.0   83.0  1.60  1.54   80.4   85.6   1.00    1972.    2139.\n 8 mu[4]     76.0   76.0  1.12  1.09   74.2   77.8   1.00    3629.    2618.\n 9 mu[5]     92.1   92.1  2.50  2.41   88.1   96.3   1.00    1444.    1487.\n10 mu[6]     70.6   70.6  1.08  1.06   68.9   72.4   1.00    3498.    2477.\n# ℹ 24 more rows\n\n\nWhereas before we only had 4 variables each of length 1, we now still have those same 4 variables and also mu:\n\n\nCode\nfit_no_hardcoding$metadata()$stan_variable_sizes %&gt;% \n  unlist %&gt;% \n  enframe(name = \"variable\", value = \"length\") %&gt;% \n  right_join(fit_return_mu$metadata()$stan_variable_sizes %&gt;% \n              unlist() %&gt;% \n              enframe(name = \"variable\", value = \"length\"),\n            by = \"variable\") %&gt;% \n  knitr::kable(format = \"html\", digits = 1, align = \"lcc\",\n               col.names = c(\"Variable\", \"Model 2 Length\", \"Model 3 Length\")) %&gt;%\n  kableExtra::kable_styling(bootstrap_options = \"striped\", full_width = FALSE,\n                            position = \"center\")\n\n\n\n\n\nVariable\nModel 2 Length\nModel 3 Length\n\n\n\n\nlp__\n1\n1\n\n\nalpha\n1\n1\n\n\nbeta\n1\n1\n\n\nsigma\n1\n1\n\n\nmu\n-\n30\n\n\n\n\n\nNotice now that we have kept samples for the mean prediction.\n\n\n\n\n\n\nTip\n\n\n\nIn general, if there’s a quantity that you both want to keep and is necessary to have in the model block, e.g. a parameter in the likelihood like mu here or like an individual prediction (IPRED) in a PopPK model, put it in transformed parameters. If it’s something that you want to keep, but isn’t necessary for the model block, it’s better to go in generated quantities - the evaluations in transformed parameters are done at every leapfrog step while the evaluations in generated quantities are only performed once at the end of each sampling iteration. No need to make a calculation at every leapfrog step if it isn’t needed to increment the target4.",
+    "crumbs": [
+      "Fundamentals",
+      "Stan",
+      "Program Block Examples",
+      "Simple Linear Regression"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Stan/simple_linear_regression.html#model-4---write-a-function",
+    "href": "Content/Fundamentals/Stan/simple_linear_regression.html#model-4---write-a-function",
+    "title": "Program Blocks with Simple Linear Regression",
+    "section": "6 Model 4 - Write a Function",
+    "text": "6 Model 4 - Write a Function\nIt is sometimes easier and cleaner to write your own functions to do some calculations in your Stan program. Here, we’ll add a functions block and write a function to calculate mu and use that function in transformed parameters where mu is calculated.\n\n6.1 Stan Model\n\nfunctions{\n\n  vector calculate_mu(real intercept, real slope, vector x){\n\n    vector[num_elements(x)] mu = intercept + slope*x;\n    return mu;\n\n  }\n\n}\ndata{\n\n  int&lt;lower = 1&gt; n;\n  array[n] real y;\n  vector[n] x;\n\n  real mu_alpha, mu_beta, mu_sigma;\n  real&lt;lower = 0&gt; sd_alpha, sd_beta, sd_sigma;\n\n}\nparameters{\n\n  real alpha;\n  real beta;\n  real&lt;lower = 0&gt; sigma;\n\n}\ntransformed parameters{\n\n  vector[n] mu = calculate_mu(alpha, beta, x);\n\n}\nmodel{\n\n  // Priors\n  alpha ~ normal(mu_alpha, sd_alpha);\n  beta ~ normal(mu_beta, sd_beta);\n  sigma ~ normal(mu_sigma, sd_sigma);\n\n  // Likelihood\n  y ~ normal(mu, sigma);\n\n}\n\n\n\n6.2 Fit\nPre-process the data, choose your hyperparameters, compile the model, and fit it:\n\n## model_function_mu &lt;- cmdstan_model(\"path/to/your/stan/file_function_mu.stan\")\n\nstan_data &lt;- list(n = nrow(data),\n                  y = data$y,\n                  x = data$x,\n                  mu_alpha = 0,\n                  sd_alpha = 30,\n                  mu_beta = 0,\n                  sd_beta = 10,\n                  mu_sigma = 0,\n                  sd_sigma = 15)\n\nfit_function_mu &lt;- model_function_mu$sample(data = stan_data,\n                                            seed = 112358,\n                                            chains = 4,\n                                            parallel_chains = 4,\n                                            iter_warmup = 1000,\n                                            iter_sampling = 1000,\n                                            adapt_delta = 0.8,\n                                            refresh = 0,\n                                            max_treedepth = 10)\n\nRunning MCMC with 4 parallel chains...\n\nChain 1 finished in 0.1 seconds.\nChain 2 finished in 0.1 seconds.\nChain 3 finished in 0.1 seconds.\nChain 4 finished in 0.1 seconds.\n\nAll 4 chains finished successfully.\nMean chain execution time: 0.1 seconds.\nTotal execution time: 0.1 seconds.\n\n\n\n\n6.3 Posterior Summary\nLook at the posterior summary:\n\nfit_function_mu$summary() \n\n# A tibble: 34 × 10\n   variable   mean median    sd   mad     q5    q95  rhat ess_bulk ess_tail\n   &lt;chr&gt;     &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;\n 1 lp__     -66.0  -65.7  1.27  0.999 -68.5  -64.7   1.00    1336.    1665.\n 2 alpha     -5.49  -5.62 9.20  8.90  -20.2    9.86  1.00    1169.    1223.\n 3 beta       3.29   3.30 0.384 0.371   2.65   3.91  1.00    1176.    1223.\n 4 sigma      5.92   5.83 0.815 0.799   4.77   7.40  1.00    1594.    1727.\n 5 mu[1]     78.6   78.6  1.26  1.22   76.6   80.7   1.00    2734.    2503.\n 6 mu[2]     71.9   71.9  1.06  1.04   70.2   73.6   1.00    3980.    2155.\n 7 mu[3]     83.0   83.0  1.60  1.54   80.4   85.6   1.00    1972.    2139.\n 8 mu[4]     76.0   76.0  1.12  1.09   74.2   77.8   1.00    3629.    2618.\n 9 mu[5]     92.1   92.1  2.50  2.41   88.1   96.3   1.00    1444.    1487.\n10 mu[6]     70.6   70.6  1.08  1.06   68.9   72.4   1.00    3498.    2477.\n# ℹ 24 more rows\n\n\nAnd we get the exact same posterior5, since the only thing we changed was the code for calculating mu.",
+    "crumbs": [
+      "Fundamentals",
+      "Stan",
+      "Program Block Examples",
+      "Simple Linear Regression"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Stan/simple_linear_regression.html#model-5---calculate-other-things-you-might-want-e.g.-posterior-predictive-checks-predictions-log-likelihoods",
+    "href": "Content/Fundamentals/Stan/simple_linear_regression.html#model-5---calculate-other-things-you-might-want-e.g.-posterior-predictive-checks-predictions-log-likelihoods",
+    "title": "Program Blocks with Simple Linear Regression",
+    "section": "7 Model 5 - Calculate Other Things You Might Want (e.g. posterior predictive checks, predictions, log-likelihoods, …)",
+    "text": "7 Model 5 - Calculate Other Things You Might Want (e.g. posterior predictive checks, predictions, log-likelihoods, …)\nNow I want to make predictions at a new set of x-values. I’ll also do some posterior predictive checks (PPCs) and calculate log-likelihoods of individual observations. Since I don’t need any of these to evaluate the posterior distribution, I do these things in the generated quantities block.\n\n7.1 Stan Model\n\nfunctions{\n\n  vector calculate_mu(real intercept, real slope, vector x){\n\n    vector[num_elements(x)] mu = intercept + slope*x;\n    return mu;\n\n  }\n\n}\ndata{\n\n  int&lt;lower = 1&gt; n;\n  array[n] real y;\n  vector[n] x;\n\n  real mu_alpha, mu_beta, mu_sigma;\n  real&lt;lower = 0&gt; sd_alpha, sd_beta, sd_sigma;\n\n  int&lt;lower = 1&gt; n_pred;\n  vector[n_pred] x_pred;\n\n}\nparameters{\n\n  real alpha;\n  real beta;\n  real&lt;lower = 0&gt; sigma;\n\n}\ntransformed parameters{\n\n  vector[n] mu = calculate_mu(alpha, beta, x);\n\n}\nmodel{\n\n  // Priors\n  alpha ~ normal(mu_alpha, sd_alpha);\n  beta ~ normal(mu_beta, sd_beta);\n  sigma ~ normal(mu_sigma, sd_sigma);\n\n  // Likelihood\n  y ~ normal(mu, sigma);\n\n}\ngenerated quantities{\n\n  // PPC - mu is still accessible here, so it doesn't need to be calculated again\n  array[n] real y_ppc = normal_rng(mu, sigma);\n  \n  // Predictions at new points\n  vector[n_pred] y_pred_mean = calculate_mu(alpha, beta, x_pred);\n  array[n_pred] real y_pred = normal_rng(y_pred_mean, sigma);\n  \n  // Log-likelihoods of individual observations\n  vector[n] log_lik;\n  for(i in 1:n){\n    log_lik[i] = normal_lpdf(y[i] | mu[i], sigma);\n  }\n\n}\n\n\n\n7.2 Fit\nPre-process the data, choose your hyperparameters, compile the model, and fit it:\n\n## model_gq &lt;- cmdstan_model(\"path/to/your/stan/file_gq.stan\")\n\n# New points at which to predict\nx_pred &lt;- seq(20, 30, by = 0.1)\n\nstan_data &lt;- list(n = nrow(data),\n                  y = data$y,\n                  x = data$x,\n                  mu_alpha = 0,\n                  sd_alpha = 30,\n                  mu_beta = 0,\n                  sd_beta = 10,\n                  mu_sigma = 0,\n                  sd_sigma = 15,\n                  n_pred = length(x_pred),\n                  x_pred = x_pred)\n\nfit_gq &lt;- model_gq$sample(data = stan_data,\n                          seed = 112358,\n                          chains = 4,\n                          parallel_chains = 4,\n                          iter_warmup = 1000,\n                          iter_sampling = 1000,\n                          adapt_delta = 0.8,\n                          refresh = 0,\n                          max_treedepth = 10)\n\nRunning MCMC with 4 parallel chains...\n\nChain 1 finished in 0.1 seconds.\nChain 2 finished in 0.1 seconds.\nChain 3 finished in 0.1 seconds.\nChain 4 finished in 0.1 seconds.\n\nAll 4 chains finished successfully.\nMean chain execution time: 0.1 seconds.\nTotal execution time: 0.3 seconds.\n\n\n\n\n7.3 Posterior Summary\nLook at the posterior summary:\n\nfit_gq$summary() \n\n# A tibble: 296 × 10\n   variable   mean median    sd   mad     q5    q95  rhat ess_bulk ess_tail\n   &lt;chr&gt;     &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;\n 1 lp__     -66.1  -65.7  1.32  0.999 -68.5  -64.7   1.00    1012.    1252.\n 2 alpha     -5.11  -4.90 9.32  9.31  -20.1   10.2   1.01    1182.     768.\n 3 beta       3.27   3.27 0.389 0.390   2.65   3.89  1.01    1212.     768.\n 4 sigma      5.86   5.76 0.830 0.777   4.69   7.35  1.00    1490.    1428.\n 5 mu[1]     78.6   78.6  1.28  1.25   76.5   80.8   1.00    2814.    2848.\n 6 mu[2]     71.9   71.9  1.09  1.08   70.1   73.7   1.00    3772.    2498.\n 7 mu[3]     83.0   83.0  1.61  1.58   80.4   85.7   1.00    1960.    2155.\n 8 mu[4]     76.0   76.0  1.14  1.11   74.1   77.9   1.00    3644.    2617.\n 9 mu[5]     92.1   92.1  2.52  2.45   88.0   96.3   1.00    1460.     882.\n10 mu[6]     70.7   70.7  1.11  1.11   68.9   72.5   1.00    3357.    2422.\n# ℹ 286 more rows\n\n\nWe’ve now got these other quantities that we wanted:\n\n\nCode\nfit_return_mu$metadata()$stan_variable_sizes %&gt;% \n  unlist %&gt;% \n  enframe(name = \"variable\", value = \"length\") %&gt;% \n  right_join(fit_gq$metadata()$stan_variable_sizes %&gt;% \n              unlist() %&gt;% \n              enframe(name = \"variable\", value = \"length\"),\n            by = \"variable\") %&gt;% \n  knitr::kable(format = \"html\", digits = 1, align = \"lcc\",\n               col.names = c(\"Variable\", \"Model 3 Length\", \"Model 5 Length\")) %&gt;%\n  kableExtra::kable_styling(bootstrap_options = \"striped\", full_width = FALSE,\n                            position = \"center\")\n\n\n\n\n\nVariable\nModel 3 Length\nModel 5 Length\n\n\n\n\nlp__\n1\n1\n\n\nalpha\n1\n1\n\n\nbeta\n1\n1\n\n\nsigma\n1\n1\n\n\nmu\n30\n30\n\n\ny_ppc\n-\n30\n\n\ny_pred_mean\n-\n101\n\n\ny_pred\n-\n101\n\n\nlog_lik\n-\n30\n\n\n\n\n\n\n\n\n\n\n\nNote\n\n\n\nWe will talk about these variables we just added to generated quantities here.",
+    "crumbs": [
+      "Fundamentals",
+      "Stan",
+      "Program Block Examples",
+      "Simple Linear Regression"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Stan/simple_linear_regression.html#model-6---modify-the-data-in-transformed-data",
+    "href": "Content/Fundamentals/Stan/simple_linear_regression.html#model-6---modify-the-data-in-transformed-data",
+    "title": "Program Blocks with Simple Linear Regression",
+    "section": "8 Model 6 - Modify the Data in transformed data",
+    "text": "8 Model 6 - Modify the Data in transformed data\nUp to here, we’ve touched on all program blocks except for transformed data. This is where we can declare and define new variables (if I’m going to hardcode something, it will be in this block) or modify variables from data to use in the rest of the program.\nFor this example, we will center our independent variable (by subtracting off the mean) to give the intercept a more meaningful interpretation.\n\n8.1 Stan Model\n\nfunctions{\n\n  vector calculate_mu(real intercept, real slope, vector x){\n\n    vector[num_elements(x)] mu = intercept + slope*x;\n    return mu;\n\n  }\n\n}\ndata{\n\n  int&lt;lower = 1&gt; n;\n  array[n] real y;\n  vector[n] x;\n\n  real mu_alpha, mu_beta, mu_sigma;\n  real&lt;lower = 0&gt; sd_alpha, sd_beta, sd_sigma;\n\n  int&lt;lower = 1&gt; n_pred;\n  vector[n_pred] x_pred;\n\n}\ntransformed data{\n\n  real mean_x = mean(x);\n  vector[n] x_centered = x - mean(x);\n  vector[n_pred] x_pred_centered = x_pred - mean(x);\n\n}\nparameters{\n\n  real alpha;\n  real beta;\n  real&lt;lower = 0&gt; sigma;\n\n}\ntransformed parameters{\n\n  vector[n] mu = calculate_mu(alpha, beta, x_centered);\n\n}\nmodel{\n\n  // Priors\n  alpha ~ normal(mu_alpha, sd_alpha);\n  beta ~ normal(mu_beta, sd_beta);\n  sigma ~ normal(mu_sigma, sd_sigma);\n\n  // Likelihood\n  y ~ normal(mu, sigma);\n\n}\ngenerated quantities{\n\n  // PPC - mu is still accessible here, so it doesn't need to be calculated again\n  array[n] real y_ppc = normal_rng(mu, sigma);\n  \n  // Predictions at new points\n  vector[n_pred] y_pred_mean = calculate_mu(alpha, beta, x_pred_centered);\n  array[n_pred] real y_pred = normal_rng(y_pred_mean, sigma);\n  \n  // Log-likelihoods of individual observations\n  vector[n] log_lik;\n  for(i in 1:n){\n    log_lik[i] = normal_lpdf(y[i] | mu[i], sigma);\n  }\n\n}\n\n\n\n8.2 Fit\nPre-process the data, choose your hyperparameters6, compile the model, and fit it:\n\n## model_td &lt;- cmdstan_model(\"path/to/your/stan/file_td.stan\")\n\n# New points at which to predict\nx_pred &lt;- seq(0, 10, by = 0.1)\n\nstan_data &lt;- list(n = nrow(data),\n                  y = data$y,\n                  x = data$x,\n                  mu_alpha = 0,\n                  sd_alpha = 30,\n                  mu_beta = 0,\n                  sd_beta = 10,\n                  mu_sigma = 0,\n                  sd_sigma = 15,\n                  n_pred = length(x_pred),\n                  x_pred = x_pred)\n\nfit_td &lt;- model_td$sample(data = stan_data,\n                          seed = 112358,\n                          chains = 4,\n                          parallel_chains = 4,\n                          iter_warmup = 1000,\n                          iter_sampling = 1000,\n                          adapt_delta = 0.8,\n                          refresh = 0,\n                          max_treedepth = 10)\n\nRunning MCMC with 4 parallel chains...\n\n\nChain 1 finished in 0.1 seconds.\nChain 2 finished in 0.1 seconds.\nChain 3 finished in 0.1 seconds.\nChain 4 finished in 0.1 seconds.\n\nAll 4 chains finished successfully.\nMean chain execution time: 0.1 seconds.\nTotal execution time: 0.2 seconds.\n\n\n\n\n8.3 Posterior Summary\nLook at the posterior summary:\n\nfit_td$summary() \n\n# A tibble: 296 × 10\n   variable   mean median    sd   mad     q5    q95  rhat ess_bulk ess_tail\n   &lt;chr&gt;     &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;\n 1 lp__     -69.0  -68.7  1.28  1.03  -71.5  -67.6   1.00    1915.    2258.\n 2 alpha     73.0   73.0  1.08  1.06   71.2   74.7   1.00    3689.    3079.\n 3 beta       3.29   3.29 0.410 0.394   2.62   3.96  1.00    3859.    2817.\n 4 sigma      5.92   5.82 0.844 0.796   4.73   7.45  1.00    3624.    2676.\n 5 mu[1]     78.5   78.5  1.28  1.27   76.4   80.6   1.00    3804.    3029.\n 6 mu[2]     71.7   71.7  1.09  1.07   70.0   73.5   1.00    3619.    2964.\n 7 mu[3]     82.9   82.9  1.64  1.62   80.2   85.5   1.00    3818.    3138.\n 8 mu[4]     75.9   75.8  1.14  1.11   74.0   77.7   1.00    3802.    3037.\n 9 mu[5]     92.0   92.1  2.61  2.55   87.7   96.2   1.00    3844.    2838.\n10 mu[6]     70.5   70.5  1.12  1.11   68.7   72.3   1.00    3580.    2917.\n# ℹ 286 more rows",
+    "crumbs": [
+      "Fundamentals",
+      "Stan",
+      "Program Block Examples",
+      "Simple Linear Regression"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Stan/simple_linear_regression.html#model-7---use-local-variables-for-interim-quantities-that-you-dont-want-to-keep",
+    "href": "Content/Fundamentals/Stan/simple_linear_regression.html#model-7---use-local-variables-for-interim-quantities-that-you-dont-want-to-keep",
+    "title": "Program Blocks with Simple Linear Regression",
+    "section": "9 Model 7 - Use Local Variables for Interim Quantities that You Don’t Want to Keep",
+    "text": "9 Model 7 - Use Local Variables for Interim Quantities that You Don’t Want to Keep\nBuilding off of Model 5 in Section 7.1, let’s imagine a case where we didn’t want to keep y_pred_mean, but we still wanted to have it to help create y_pred. In this situation, we declare y_pred, but don’t assign it a value, and then create a statement block with curly brackets. In that statement block, we can declare, assign, and perform calculations with interim values that we don’t want to keep, such as y_pred_mean. An assignment made to a variable declared outside of the statement block will be saved, even if the assignment happens inside the statement block. This model shows how this is done:\n\n9.1 Stan Model\n\nfunctions{\n\n  vector calculate_mu(real intercept, real slope, vector x){\n\n    vector[num_elements(x)] mu = intercept + slope*x;\n    return mu;\n\n  }\n\n}\ndata{\n\n  int&lt;lower = 1&gt; n;\n  array[n] real y;\n  vector[n] x;\n\n  real mu_alpha, mu_beta, mu_sigma;\n  real&lt;lower = 0&gt; sd_alpha, sd_beta, sd_sigma;\n\n  int&lt;lower = 1&gt; n_pred;\n  vector[n_pred] x_pred;\n\n}\nparameters{\n\n  real alpha;\n  real beta;\n  real&lt;lower = 0&gt; sigma;\n\n}\ntransformed parameters{\n\n  vector[n] mu = calculate_mu(alpha, beta, x);\n\n}\nmodel{\n\n  // Priors\n  alpha ~ normal(mu_alpha, sd_alpha);\n  beta ~ normal(mu_beta, sd_beta);\n  sigma ~ normal(mu_sigma, sd_sigma);\n\n  // Likelihood\n  y ~ normal(mu, sigma);\n\n}\ngenerated quantities{\n\n  // PPC - mu is still accessible here, so it doesn't need to be calculated again\n  array[n] real y_ppc = normal_rng(mu, sigma);\n  \n  // Predictions at new points\n  array[n_pred] real y_pred;  // included in output\n  \n  // Log-likelihoods of individual observations\n  vector[n] log_lik;\n  for(i in 1:n){\n    log_lik[i] = normal_lpdf(y[i] | mu[i], sigma);\n  }\n  \n  // Start of statement block\n  {\n  \n    vector[n_pred] y_pred_mean = calculate_mu(alpha, beta, x_pred); // not included in output\n    y_pred = normal_rng(y_pred_mean, sigma);\n  \n  }\n  \n}\n\n\n\n9.2 Fit\nPre-process the data, choose your hyperparameters, compile the model, and fit it:\n\n## model_sb &lt;- cmdstan_model(\"path/to/your/stan/file_sb.stan\")\n\n# New points at which to predict\nx_pred &lt;- seq(0, 10, by = 0.1)\n\nstan_data &lt;- list(n = nrow(data),\n                  y = data$y,\n                  x = data$x,\n                  mu_alpha = 0,\n                  sd_alpha = 30,\n                  mu_beta = 0,\n                  sd_beta = 10,\n                  mu_sigma = 0,\n                  sd_sigma = 15,\n                  n_pred = length(x_pred),\n                  x_pred = x_pred)\n\nfit_sb &lt;- model_sb$sample(data = stan_data,\n                          seed = 112358,\n                          chains = 4,\n                          parallel_chains = 4,\n                          iter_warmup = 1000,\n                          iter_sampling = 1000,\n                          adapt_delta = 0.8,\n                          refresh = 0,\n                          max_treedepth = 10)\n\nRunning MCMC with 4 parallel chains...\n\nChain 1 finished in 0.1 seconds.\nChain 2 finished in 0.1 seconds.\nChain 3 finished in 0.1 seconds.\nChain 4 finished in 0.1 seconds.\n\nAll 4 chains finished successfully.\nMean chain execution time: 0.1 seconds.\nTotal execution time: 0.3 seconds.\n\n\n\n\n9.3 Posterior Summary\nLook at the posterior summary:\n\nfit_sb$summary() \n\n# A tibble: 195 × 10\n   variable   mean median    sd   mad     q5    q95  rhat ess_bulk ess_tail\n   &lt;chr&gt;     &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;\n 1 lp__     -66.1  -65.7  1.32  0.999 -68.5  -64.7   1.00    1012.    1252.\n 2 alpha     -5.11  -4.90 9.32  9.31  -20.1   10.2   1.01    1182.     768.\n 3 beta       3.27   3.27 0.389 0.390   2.65   3.89  1.01    1212.     768.\n 4 sigma      5.86   5.76 0.830 0.777   4.69   7.35  1.00    1490.    1428.\n 5 mu[1]     78.6   78.6  1.28  1.25   76.5   80.8   1.00    2814.    2848.\n 6 mu[2]     71.9   71.9  1.09  1.08   70.1   73.7   1.00    3772.    2498.\n 7 mu[3]     83.0   83.0  1.61  1.58   80.4   85.7   1.00    1960.    2155.\n 8 mu[4]     76.0   76.0  1.14  1.11   74.1   77.9   1.00    3644.    2617.\n 9 mu[5]     92.1   92.1  2.52  2.45   88.0   96.3   1.00    1460.     882.\n10 mu[6]     70.7   70.7  1.11  1.11   68.9   72.5   1.00    3357.    2422.\n# ℹ 185 more rows\n\n\nAnd you can see below that y_pred_mean was in Model 5, but was left out of Model 7 by declaring it in the statement block.\n\n\nCode\nfit_gq$metadata()$stan_variable_sizes %&gt;% \n  unlist %&gt;% \n  enframe(name = \"variable\", value = \"length\") %&gt;% \n  left_join(fit_sb$metadata()$stan_variable_sizes %&gt;% \n              unlist() %&gt;% \n              enframe(name = \"variable\", value = \"length\"),\n            by = \"variable\") %&gt;% \n  knitr::kable(format = \"html\", digits = 1, align = \"lcc\",\n               col.names = c(\"Variable\", \"Model 5 Length\", \"Model 7 Length\")) %&gt;%\n  kableExtra::kable_styling(bootstrap_options = \"striped\", full_width = FALSE,\n                            position = \"center\")\n\n\n\n\n\nVariable\nModel 5 Length\nModel 7 Length\n\n\n\n\nlp__\n1\n1\n\n\nalpha\n1\n1\n\n\nbeta\n1\n1\n\n\nsigma\n1\n1\n\n\nmu\n30\n30\n\n\ny_ppc\n30\n30\n\n\ny_pred_mean\n101\n-\n\n\ny_pred\n101\n101\n\n\nlog_lik\n30\n30",
+    "crumbs": [
+      "Fundamentals",
+      "Stan",
+      "Program Block Examples",
+      "Simple Linear Regression"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Stan/simple_linear_regression.html#summary",
+    "href": "Content/Fundamentals/Stan/simple_linear_regression.html#summary",
+    "title": "Program Blocks with Simple Linear Regression",
+    "section": "10 Summary",
+    "text": "10 Summary\nHopefully this shows a little about the program blocks in a Stan program. Two takeaways:\n\nDon’t hardcode anything you might want to change or tinker with - it’ll help your model-writing to not have to recompile the model over and over.\nYou’ll likely calculate certain quantities that aren’t explicitly in the model. We want to think carefully about which block is the most computationally efficient place to calculate those quantities - this particular example is extremely easy, so computational cost isn’t a concern, but most models in PK/PD are more computationally expensive:\n\nIf you want to keep it for posterior analysis and it is involved in incrementing the target, put it in transformed parameters (like mu in our examples).\n\nIf you want to keep it for posterior analysis and it is not involved in incrementing the target, put it in generated quantities (like y_pred in our examples).\nIf you don’t want to keep it for posterior analysis and it is involved in incrementing the target, do the calculations in the model block (I don’t have one like this in these examples, since I rarely, if ever, do this)\nIf you don’t want to keep it for posterior analysis and it is not involved in incrementing the target, don’t do the calculations at all.\n\n\n\n\nCode\nkeep &lt;- c(\"Keep: Yes\", \"Keep: No\")\nincrement_target &lt;- c(\"Increments Target: Yes\", \"Increments Target: No\")\n\n`Keep for Posterior Analysis` &lt;- expand_grid(keep, increment_target) %&gt;% \n  mutate(block = \n           case_when(keep == \"Keep: Yes\" & \n                       increment_target == \"Increments Target: Yes\" ~ \n                       \"transformed parameters\",\n                     keep == \"Keep: Yes\" & \n                       increment_target == \"Increments Target: No\" ~ \n                       \"generated quantities\",\n                     keep == \"Keep: No\" & \n                       increment_target == \"Increments Target: Yes\" ~ \"model\",\n                     keep == \"Keep: No\" & \n                       increment_target == \"Increments Target: No\" ~ \"none\"))\n\ncollapsibleTree::collapsibleTree(`Keep for Posterior Analysis`, \n                                 hierarchy = colnames(`Keep for Posterior Analysis`),\n                                 collapsed = FALSE)",
+    "crumbs": [
+      "Fundamentals",
+      "Stan",
+      "Program Block Examples",
+      "Simple Linear Regression"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Stan/simple_linear_regression.html#footnotes",
+    "href": "Content/Fundamentals/Stan/simple_linear_regression.html#footnotes",
+    "title": "Program Blocks with Simple Linear Regression",
+    "section": "Footnotes",
+    "text": "Footnotes\n\n\nHere I put the data into a list, but it can be in another file like a JSON file. See the $sample() method↩︎\nYou’ll need to uncomment and replace the file path in the line with cmdstan_model(), which compiles the model↩︎\nIt is the same statistical model as in Section 4.1, but it’s written to explicitly show the \\(\\mu_i\\) term that we are going to keep in the output,↩︎\nThe target is a Stan-specific term that denotes the (log) target density, which for most of our purposes is the log of the posterior density. See here.↩︎\nusing the same seed↩︎\nYou would want to adjust \\(\\mu_\\alpha\\), the location hyperparameter for your intercept if you were to do this in practice, but this page is only to showcase Stan code, not good modeling practice.↩︎",
+    "crumbs": [
+      "Fundamentals",
+      "Stan",
+      "Program Block Examples",
+      "Simple Linear Regression"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Stan/the_stan_language.html",
+    "href": "Content/Fundamentals/Stan/the_stan_language.html",
+    "title": "The Stan Language",
+    "section": "",
+    "text": "The Stan language is a strongly statically typed compiled language (similar to C or C++). For us in practive, this means we have two major differences between Stan and interpreted languages that we use for our daily tasks like R and Python:\n\nWe declare a type (int, real, array, vector, matrix, ...) for each variable, and this type cannot change. This is contrary to languages like R and Python where we don’t have to declare a variable type, and we can overwrite and change a variable anytime.\nA Stan program must be written completely and then compiled - we can’t run it line-by-line as we can in an interpreted language like R.\n\nWe write a Stan model down in a .stan file1, after which the Stan program is internally translated to C++ and compiled.",
+    "crumbs": [
+      "Fundamentals",
+      "Stan",
+      "The Stan Language"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Stan/the_stan_language.html#the-stan-language",
+    "href": "Content/Fundamentals/Stan/the_stan_language.html#the-stan-language",
+    "title": "The Stan Language",
+    "section": "",
+    "text": "The Stan language is a strongly statically typed compiled language (similar to C or C++). For us in practive, this means we have two major differences between Stan and interpreted languages that we use for our daily tasks like R and Python:\n\nWe declare a type (int, real, array, vector, matrix, ...) for each variable, and this type cannot change. This is contrary to languages like R and Python where we don’t have to declare a variable type, and we can overwrite and change a variable anytime.\nA Stan program must be written completely and then compiled - we can’t run it line-by-line as we can in an interpreted language like R.\n\nWe write a Stan model down in a .stan file1, after which the Stan program is internally translated to C++ and compiled.",
+    "crumbs": [
+      "Fundamentals",
+      "Stan",
+      "The Stan Language"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Stan/the_stan_language.html#stan-program-blocks",
+    "href": "Content/Fundamentals/Stan/the_stan_language.html#stan-program-blocks",
+    "title": "The Stan Language",
+    "section": "2 Stan Program Blocks",
+    "text": "2 Stan Program Blocks\nA Stan model is written in program blocks, similarly to NONMEM with $PROB, $DATA, $PK, .... There is a good explanation of the Stan program blocks here, and I highly recommend you read that to get a more thorough understanding. Here we give a brief overview2:\n\n2.1 functions\n\nThe functions block is an optional block at the beginning of the program where user-defined functions appear.\nUser defined random number generator functions and probability distributions can be defined here\nVoid functions (those that return no value) are allowed\n\nHere is a functions block with two functions:\n\ndepot_1cmt() returns a vector containing the concentration of drug after a single dose assuming first-order absorption and elimination at a vector of timepoints.\nnormal_lb_rng() generates a single random number from a normal distribution that is truncated below at lb (often this is 0):\n\n\nfunctions{\n  \n  vector depot_1cmt(real dose, real cl, real vc, real ka, \n                    vector time_since_dose){\n    \n    real ke = cl/vc;\n    \n    vector[num_elements(time_since_dose)] conc = dose/vc * ka/(ka - ke) .* \n      (exp(-ke*time_since_dose) - exp(-ka*time_since_dose));\n    \n    return conc;\n    \n  }\n  \n  real normal_lb_rng(real mu, real sigma, real lb){\n    \n    real p_lb = normal_cdf(lb | mu, sigma);\n    real u = uniform_rng(p_lb, 1);\n    real y = mu + sigma * inv_Phi(u);\n    return y; \n\n  }\n  \n}\n\n\n\n2.2 data\n\nData are specified upfront and remain fixed\nThey are either specified in the block or read from outside - generally as R users using cmdstanr we supply the $sample() function with either a list of R objects (most examples on this website do this) or the path to a data file containing the required variables.\nThey are read once at the beginning of the process\n\nExample: Define observed PK (dv) data (and PD if you have it). We can also define our independent variables (time), parameters for our prior distributions (scale_x), covariates, times at which we want to make predictions (time_new), or anything else we want to input into the model.\ndata{\n  \n  int n_obs;                        // Number of observations\n  real&lt;lower = 0&gt; dose;             // Dose amount\n  real time_of_first_dose;          // Time of first dose\n  array[n_obs] real&lt;lower = time_of_first_dose&gt; time; // Times at which we have observations\n  vector[n_obs] dv;                 // Observed PK data\n  \n  real&lt;lower = 0&gt; location_cl;      // Prior location parameter for CL\n  real&lt;lower = 0&gt; location_vc;      // Prior location parameter for VC\n  real&lt;lower = 0&gt; location_ka;      // Prior location parameter for KA\n  \n  real&lt;lower = 0&gt; scale_cl;         // Prior Scale parameter for CL\n  real&lt;lower = 0&gt; scale_vc;         // Prior Scale parameter for VC\n  real&lt;lower = 0&gt; scale_ka;         // Prior Scale parameter for KA\n  \n  real&lt;lower = 0&gt; scale_sigma;      // Prior Scale parameter for lognormal error\n  \n  int n_time_new;                   // Number of new times at which to make a prediction\n  array[n_time_new] real time_new;  // New times at which to make a prediction\n \n}\n\n\n2.3 transformed data\n\nWe declare and define variables that do not need to be changed when running the program.\nWe can hard code variables here (e.g. n_cmt).\nWe can also manipulate our data variables into a form we will use later in the Stan program.\nThe statements in transformed data are executed only once and directly after reading the data in the data block.\n\ntransformed data{ \n  \n  vector[n_obs] time_since_dose = to_vector(time) - time_of_first_dose;\n  vector[n_time_new] time_since_dose_new = to_vector(time_new) - \n                                                     time_of_first_dose;\n  int n_cmt = 2;                                        \n  \n}\n\n\n2.4 parameters\n\nParameters are altered during the sampling process. These are the model parameters sampled by Stan.\nThese are the ones we provide priors and initial estimates for later on\nCan specify bounds here\n\nExample: we define the parameters for the one-compartment depot model and constrain the absorption rate constant to be larger than elimination to ensure no flip-flop kinetics.\nparameters{  \n  \n  real&lt;lower = 0&gt; CL;     \n  real&lt;lower = 0&gt; VC;\n  real&lt;lower = CL/VC&gt; KA;\n  \n  real&lt;lower = 0&gt; sigma;\n  \n}\n\n\n2.5 transformed parameters\n\nWe define and calculate variables that are needed for the calculation of the target density or other values we want to keep. In practice, this means we calculate values needed to compute the likelihood.\nIf parameters depend on both data and parameters, we specify them in the transformed parameters block.\nIf parameters depend on only data, they should be specified in transformed data.\nThe statements in transformed parameters are calculated at every leapfrog step in the NUTS algorithm, so the calculation is relatively expensive. Quantities that you wish to keep but aren’t necessary for computing the target density should be computed in generated quantities.\n\nExample: Calculate the PK expected value (ipred) before accounting for the residual error\ntransformed parameters{\n  \n  vector[n_obs] ipred = depot_1cmt(dose, CL, VC, KA, time_since_dose);\n  \n}\n\n\n2.6 model\n\nWe define the model here\nStochastic definitions and sampling statements are included here\n\nConstraints on parameters and the statements in this block define prior distributions\n\nLikelihood statement is defined here\n\nExamples:\n\nSpecifying the prior distributions (CL ~ , VC ~, KA ~)\nLikelihood dv is defined in vectorized notation here.\n\nmodel{ \n  \n  // Priors\n  CL ~ lognormal(log(location_cl), scale_cl);\n  VC ~ lognormal(log(location_vc), scale_vc);\n  KA ~ lognormal(log(location_ka), scale_ka) T[CL/VC, ];\n  \n  sigma ~ normal(0, scale_sigma);\n  \n  // Likelihood\n  dv ~ lognormal(log(ipred), sigma);\n\n}\n\n\n\n\n\n\nNote\n\n\n\nYou can also increment the log density with the equivalent statements target += lognormal_lpdf(CL | log(location_cl), scale_cl); and so on.\n\n\nmodel{ \n  \n  // Priors\n  target += lognormal_lpdf(CL | log(location_cl), scale_cl);\n  target += lognormal_lpdf(VC | log(location_vc), scale_vc);\n  target += lognormal_lpdf(KA | log(location_ka), scale_ka) - \n            lognormal_lccdf(CL/VC | log(location_ka), scale_sigma);\n            \n  target += normal_lpdf(sigma | 0, scale_sigma) - \n            normal_lccdf(0 | 0, scale_sigma); \n  \n  // Likelihood\n  target += lognormal_lpdf(dv | log(ipred), sigma))\n\n}\n\n\n2.7 generated quantities\n\nUsed to calculate a derived quantity or some other quantity you wish to keep in the output (posterior event probabilities, transforming parameters for reporting, …)\nUsed to make predictions\nThis block is executed only once per iteration, so is computationally inexpensive.\n\nExamples:\n\nPosterior predictive check (dv_ppc) or a measurement of a plasma concentration (dv_pred) at an unobserved time.\nWe might want to have samples for the elimination rate constant, KE, but it did not play a role in the model, so we do that here rather than in transformed parameters.\n\ngenerated quantities{\n  \n  real&lt;lower = 0&gt; KE = CL/V;\n  real&lt;lower = 0&gt; sigma_sq = square(sigma);\n  vector[n_obs] dv_ppc;\n  vector[n_time_new] ipred_new;\n  vector[n_time_new] dv_new;\n  \n  dv_ppc = to_vector(lognormal_rng(log(ipred), sigma));\n  ipred_new = depot_1cmt(dose, CL, V, KA, time_since_dose_new);\n  dv_new = to_vector(lognormal_rng(log(ipred_new), sigma));\n  \n}",
+    "crumbs": [
+      "Fundamentals",
+      "Stan",
+      "The Stan Language"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/Stan/the_stan_language.html#footnotes",
+    "href": "Content/Fundamentals/Stan/the_stan_language.html#footnotes",
+    "title": "The Stan Language",
+    "section": "Footnotes",
+    "text": "Footnotes\n\n\nThe model can be written inline in a text string, but it’s highly discouraged for anything beyond the simplest of models (nothing we see in the PK/PD world)↩︎\nSee here for a simple linear regression example that showcases the Stan program blocks and gives some tips and examples and here for a PK example with a single individual.↩︎",
+    "crumbs": [
+      "Fundamentals",
+      "Stan",
+      "The Stan Language"
+    ]
+  },
+  {
+    "objectID": "Content/Fundamentals/why_stan.html",
+    "href": "Content/Fundamentals/why_stan.html",
+    "title": "Why Stan?",
+    "section": "",
+    "text": "Stan is a platform for statistical modeling and statistical computation. While it can perform maximum likelihood estimation (similar to NONMEM’s FOCE), it is mainly used for Bayesian inference.\n\nPros:\n\nGold standard for implementation of the No U-Turn Sampler (NUTS)\nWildly flexible in parameterization\nEasy to set whatever priors you want\nGood online support at Stan Discourse, extremely good documentation, and an ecosystem of adjacent packages that help with visualization and processing\nCan be used from within R with the cmdstanr package\nCan handle closed-form solutions or ODEs with no problem\n\nCons:\n\nMore difficult language to learn\nNot specifically intended for PK/PD, so doesn’t automatically handle dosing events and common models (like ADVANx in NONMEM). However, this is mostly mitigated when integrating Torsten function calls into your code.\n\n\nIn my opinion, the benefits in the flexibility of Stan far outweigh the drawbacks.\n\n\n\n Back to top",
+    "crumbs": [
+      "Fundamentals",
+      "Stan"
+    ]
+  },
+  {
+    "objectID": "Content/How_To/Cross_Validation/loocv.html",
+    "href": "Content/How_To/Cross_Validation/loocv.html",
+    "title": "Leave-one-out Cross-Validation",
+    "section": "",
+    "text": "Stay tuned!\n\n\n\n Back to top",
+    "crumbs": [
+      "How-To",
+      "Cross-Validation",
+      "Leave-one-out Cross-Validation"
+    ]
+  },
+  {
+    "objectID": "Content/How_To/Post_Process/posterior_summaries.html",
+    "href": "Content/How_To/Post_Process/posterior_summaries.html",
+    "title": "Posterior Summaries",
+    "section": "",
+    "text": "Stay tuned!\n\n\n\n Back to top",
+    "crumbs": [
+      "How-To",
+      "Post-Process",
+      "Posterior Summaries"
+    ]
+  },
+  {
+    "objectID": "Content/How_To/Post_Process/compare_prior_and_posterior.html",
+    "href": "Content/How_To/Post_Process/compare_prior_and_posterior.html",
+    "title": "Compare Prior and Posterior",
+    "section": "",
+    "text": "Stay tuned!\n\n\n\n Back to top",
+    "crumbs": [
+      "How-To",
+      "Post-Process",
+      "Compare Prior and Posterior"
+    ]
+  },
+  {
+    "objectID": "Content/How_To/fit.html",
+    "href": "Content/How_To/fit.html",
+    "title": "Fit",
+    "section": "",
+    "text": "This section will go through\n\nPrior predictive checks\nFitting a model\n\n\n\n\n Back to top",
+    "crumbs": [
+      "How-To",
+      "Fit"
+    ]
+  },
+  {
+    "objectID": "Content/How_To/Fit/fitting_a_model.html",
+    "href": "Content/How_To/Fit/fitting_a_model.html",
+    "title": "Fitting a Model",
+    "section": "",
+    "text": "Code\nlibrary(plotly)\nlibrary(gganimate)\nlibrary(knitr)\nlibrary(kableExtra)\nlibrary(tidybayes)\nlibrary(posterior)\nlibrary(bayesplot)\nlibrary(cmdstanr)\nlibrary(tidyverse)\nCode\nregister_knitr_engine(override = TRUE)\ntheme_set(theme_bw(base_size = 14, base_line_size = 1))\n\nset_cmdstan_path(\"~/Torsten/cmdstan\")",
+    "crumbs": [
+      "How-To",
+      "Fit",
+      "Fitting a Model"
+    ]
+  },
+  {
+    "objectID": "Content/How_To/Fit/fitting_a_model.html#torsten",
+    "href": "Content/How_To/Fit/fitting_a_model.html#torsten",
+    "title": "Fitting a Model",
+    "section": "1 Torsten",
+    "text": "1 Torsten\nStan is not specialized for pharmacometrics, so it does not automatically handle dosing events and common models that pharmacometrics-specific software like NONMEM, Monolix, Pumas, and nlmixr do. These limitations are mitigated when Stan is used in conjunction with Torsten, a collection of Stan functions that are analogous to NONMEM’s ADVANs. Given a dataset that follows NONMEM’s NM-TRAN specifications, these functions specify common PMx models and do all the event handling required to fit (or simulate) pharmacometric data.",
+    "crumbs": [
+      "How-To",
+      "Fit",
+      "Fitting a Model"
+    ]
+  },
+  {
+    "objectID": "Content/How_To/Fit/fitting_a_model.html#sec-read-in-data",
+    "href": "Content/How_To/Fit/fitting_a_model.html#sec-read-in-data",
+    "title": "Fitting a Model",
+    "section": "2 Data",
+    "text": "2 Data\nSince we have the ability to fit standard NONMEM datasets, we can just read in a typical NONMEM-ready dataset that we get from our programming groups. It will then require a small amount of wrangling to get ready for Stan.\n\n\nCode\nnonmem_data &lt;- read_csv(here::here(\"Data/depot_1cmt_ppa_covariates.csv\"),\n                        na = \".\") %&gt;% \n  rename_all(tolower) %&gt;% \n  rename(ID = \"id\",\n         DV = \"dv\") %&gt;% \n  mutate(DV = if_else(is.na(DV), 5555555, DV),    # This value can be anything except NA. It'll be indexed away \n         bloq = if_else(is.na(bloq), -999, bloq)) # This value can be anything except NA. It'll be indexed away\n\nnonmem_data %&gt;% \n  mutate(across(where(is.numeric), \\(x) round(x, 3))) %&gt;% \n  DT::datatable()\n\n\n\n\nTable 1: NONMEM dataset\n\n\n\n\n\n\n\n\n\n\n\n\nCode\n(p_1 &lt;- ggplot(nonmem_data %&gt;%\n                 group_by(ID) %&gt;%\n                 mutate(Dose = factor(max(amt, na.rm = TRUE))) %&gt;%\n                 ungroup() %&gt;%\n                 filter(mdv == 0)) +\n    geom_line(mapping = aes(x = time, y = DV, group = ID, color = Dose)) +\n    geom_point(mapping = aes(x = time, y = DV, group = ID, color = Dose)) +\n    scale_color_discrete(name = \"Dose (mg)\") +\n    scale_y_continuous(name = latex2exp::TeX(\"$Drug\\\\;Conc.\\\\;(\\\\mu g/mL)$\"),\n                       limits = c(NA, NA),\n                       trans = \"log10\") +\n    scale_x_continuous(name = \"Time (d)\",\n                       breaks = seq(0, 216, by = 24),\n                       labels = seq(0, 216/24, by = 24/24),\n                       limits = c(0, NA)) +\n    theme_bw(18) +\n    theme(axis.text = element_text(size = 14, face = \"bold\"),\n          axis.title = element_text(size = 18, face = \"bold\"),\n          axis.line = element_line(linewidth = 2),\n          legend.position = \"bottom\"))\n\n\n\n\n\n\n\n\nFigure 1\n\n\n\n\n\nThen we need to wrangle the data to get it ready to be input into Stan:\n\n\nCode\nn_subjects &lt;- nonmem_data %&gt;%  # number of individuals\n  distinct(ID) %&gt;%\n  count() %&gt;%\n  deframe()\n\nn_total &lt;- nrow(nonmem_data)   # total number of records\n\ni_obs &lt;- nonmem_data %&gt;%       # indices of the observations\n  mutate(row_num = 1:n()) %&gt;%\n  filter(evid == 0) %&gt;%\n  select(row_num) %&gt;%\n  deframe()\n\nn_obs &lt;- length(i_obs)         # number of observations\n\nsubj_start &lt;- nonmem_data %&gt;%  # Indices that indicate which row is the start of a new subject\n  mutate(row_num = 1:n()) %&gt;%\n  group_by(ID) %&gt;%\n  slice_head(n = 1) %&gt;%\n  ungroup() %&gt;%\n  select(row_num) %&gt;%\n  deframe()\n\nsubj_end &lt;- c(subj_start[-1] - 1, n_total) # Indices that indicate which row is the end of a subject\n\n# Covariates\nwt &lt;- nonmem_data %&gt;% \n  group_by(ID) %&gt;% \n  distinct(wt) %&gt;% \n  ungroup() %&gt;% \n  pull(wt)\n\ncmppi &lt;- nonmem_data %&gt;% \n  group_by(ID) %&gt;% \n  distinct(cmppi) %&gt;% \n  ungroup() %&gt;% \n  pull(cmppi)\n\negfr &lt;- nonmem_data %&gt;% \n  group_by(ID) %&gt;% \n  distinct(egfr) %&gt;% \n  ungroup() %&gt;% \n  pull(egfr)\n\nrace &lt;- nonmem_data %&gt;% \n  group_by(ID) %&gt;% \n  distinct(race) %&gt;% \n  ungroup() %&gt;% \n  pull(race)\n\nn_races &lt;- length(unique(race))",
+    "crumbs": [
+      "How-To",
+      "Fit",
+      "Fitting a Model"
+    ]
+  },
+  {
+    "objectID": "Content/How_To/Fit/fitting_a_model.html#model",
+    "href": "Content/How_To/Fit/fitting_a_model.html#model",
+    "title": "Fitting a Model",
+    "section": "3 Model",
+    "text": "3 Model\nHere’s the Stan model:\n\n#| code-fold: false\n// First Order Absorption (oral/subcutaneous)\n// One-compartment PK Model\n// IIV on CL, VC, and Ka (full covariance matrix)\n// proportional plus additive error - DV = IPRED*(1 + eps_p) + eps_a\n// Matrix-exponential solution using Torsten (the matrix-exponential seems to be\n//   faster than the analytical solution for this model)\n// Implements threading for within-chain parallelization \n// Deals with BLOQ values by the \"CDF trick\" (M4)\n// Since we have a normal distribution on the error, but the DV must be &gt; 0, it\n//   truncates the likelihood below at 0\n// For PPC, it generates values from a normal that is truncated below at 0\n// Covariates: \n//   1) Body Weight on CL and VC - (wt/70)^theta\n//   2) Concomitant administration of protein pump inhibitors (CMPPI) \n//      on KA (0/1) - exp(theta*cmppi)\n//   3) eGFR on CL (continuous) - (eGFR/90)^theta\n//   4) Race on VC - exp(theta_vc_{race}*I(race == {race}))\n\nfunctions{\n  \n  int num_between(int lb, int ub, array[] int y){\n    \n    int n = 0;\n    for(i in 1:num_elements(y)){\n      if(y[i] &gt;= lb && y[i] &lt;= ub)\n         n = n + 1;\n    }\n    return n;\n    \n  }\n  \n  array[] int find_between(int lb, int ub, array[] int y) {\n    // vector[num_between(lb, ub, y)] result;\n    array[num_between(lb, ub, y)] int result;\n    int n = 1;\n    for (i in 1:num_elements(y)) {\n      if (y[i] &gt;= lb && y[i] &lt;= ub) {\n        result[n] = y[i];\n        n = n + 1;\n      }\n    }\n    return result;\n  }\n  \n  vector find_between_vec(int lb, int ub, array[] int idx, vector y) {\n    \n    vector[num_between(lb, ub, idx)] result;\n    int n = 1;\n    if(num_elements(idx) != num_elements(y)) reject(\"illegal input\");\n    for (i in 1:rows(y)) {\n      if (idx[i] &gt;= lb && idx[i] &lt;= ub) {\n        result[n] = y[i];\n        n = n + 1;\n      }\n    }\n    return result;\n  }\n  \n  real normal_lb_rng(real mu, real sigma, real lb){\n    \n    real p_lb = normal_cdf(lb | mu, sigma);\n    real u = uniform_rng(p_lb, 1);\n    real y = mu + sigma * inv_Phi(u);\n    return y; \n\n  }\n  \n  real partial_sum_lpmf(array[] int seq_subj, int start, int end,\n                        vector dv_obs, array[] int dv_obs_id, array[] int i_obs,\n                        array[] real amt, array[] int cmt, array[] int evid, \n                        array[] real time, array[] real rate, array[] real ii, \n                        array[] int addl, array[] int ss,\n                        array[] int subj_start, array[] int subj_end, \n                        vector CL, vector VC, vector KA, \n                        real sigma_sq_p, real sigma_sq_a, real sigma_p_a,\n                        vector lloq, array[] int bloq,\n                        int n_random, int n_subjects, int n_total,\n                        array[] real bioav, array[] real tlag, int n_cmt){\n                           \n    real ptarget = 0;\n                              \n    int N = end - start + 1;    // number of subjects in this slice  \n    vector[n_total] dv_ipred;   \n    matrix[n_total, 2] x_ipred;\n  \n    int n_obs_slice = num_between(subj_start[start], subj_end[end], i_obs);\n    array[n_obs_slice] int i_obs_slice = find_between(subj_start[start], \n                                                      subj_end[end], i_obs);\n                                                \n    vector[n_obs_slice] dv_obs_slice = find_between_vec(start, end, \n                                                        dv_obs_id, dv_obs);\n    \n    vector[n_obs_slice] ipred_slice;\n    \n    vector[n_obs_slice] lloq_slice = lloq[i_obs_slice];\n    array[n_obs_slice] int bloq_slice = bloq[i_obs_slice];\n    \n    \n    for(n in 1:N){            // loop over subjects in this slice\n    \n      int j = n + start - 1; // j is the ID of the current subject\n      \n\n      matrix[n_cmt, n_cmt] K = rep_matrix(0, n_cmt, n_cmt);\n      K[1, 1] = -KA[j];\n      K[2, 1] = KA[j];\n      K[2, 2] = -CL[j]/VC[j];\n      \n      x_ipred[subj_start[j]:subj_end[j], ] =\n        pmx_solve_linode(time[subj_start[j]:subj_end[j]],\n                         amt[subj_start[j]:subj_end[j]],\n                         rate[subj_start[j]:subj_end[j]],\n                         ii[subj_start[j]:subj_end[j]],\n                         evid[subj_start[j]:subj_end[j]],\n                         cmt[subj_start[j]:subj_end[j]],\n                         addl[subj_start[j]:subj_end[j]],\n                         ss[subj_start[j]:subj_end[j]],\n                         K, bioav, tlag)';\n                           \n      dv_ipred[subj_start[j]:subj_end[j]] = \n        x_ipred[subj_start[j]:subj_end[j], 2] ./ VC[j];\n    \n    }\n  \n    ipred_slice = dv_ipred[i_obs_slice];\n    \n    for(i in 1:n_obs_slice){\n      \n      real ipred_tmp = ipred_slice[i];\n      real sigma_tmp = sqrt(square(ipred_tmp) * sigma_sq_p + sigma_sq_a + \n                            2*ipred_tmp*sigma_p_a);\n      \n      if(bloq_slice[i] == 1){\n        ptarget += log_diff_exp(normal_lcdf(lloq_slice[i] | ipred_tmp, \n                                                            sigma_tmp),\n                                normal_lcdf(0.0 | ipred_tmp, sigma_tmp)) -\n                   normal_lccdf(0.0 | ipred_tmp, sigma_tmp); \n      }else{\n        ptarget += normal_lpdf(dv_obs_slice[i] | ipred_tmp, sigma_tmp) -\n                   normal_lccdf(0.0 | ipred_tmp, sigma_tmp);\n      }\n    }                                         \n                              \n    return ptarget;\n                           \n  }\n  \n}\ndata{\n  \n  int n_subjects;\n  int n_total;\n  int n_obs;\n  array[n_obs] int i_obs;\n  array[n_total] int ID;\n  array[n_total] real amt;\n  array[n_total] int cmt;\n  array[n_total] int evid;\n  array[n_total] real rate;\n  array[n_total] real ii;\n  array[n_total] int addl;\n  array[n_total] int ss;\n  array[n_total] real time;\n  vector&lt;lower = 0&gt;[n_total] dv;\n  array[n_subjects] int subj_start;\n  array[n_subjects] int subj_end;\n  vector[n_total] lloq;\n  array[n_total] int bloq;\n  \n  array[n_subjects] real&lt;lower = 0&gt; wt;                    // baseline bodyweight (kg)\n  array[n_subjects] int&lt;lower = 0, upper = 1&gt; cmppi;       // cmppi\n  array[n_subjects] real&lt;lower = 0&gt; egfr;                  // eGFR\n  int&lt;lower = 2&gt; n_races;                                  // number of unique races\n  array[n_subjects] int&lt;lower = 1, upper = n_races&gt; race;  // race\n  \n  real&lt;lower = 0&gt; location_tvcl;  // Prior Location parameter for CL\n  real&lt;lower = 0&gt; location_tvvc;  // Prior Location parameter for VC\n  real&lt;lower = 0&gt; location_tvka;  // Prior Location parameter for KA\n  \n  real&lt;lower = 0&gt; scale_tvcl;     // Prior Scale parameter for CL\n  real&lt;lower = 0&gt; scale_tvvc;     // Prior Scale parameter for VC\n  real&lt;lower = 0&gt; scale_tvka;     // Prior Scale parameter for KA\n  \n  real&lt;lower = 0&gt; scale_omega_cl; // Prior scale parameter for omega_cl\n  real&lt;lower = 0&gt; scale_omega_vc; // Prior scale parameter for omega_vc\n  real&lt;lower = 0&gt; scale_omega_ka; // Prior scale parameter for omega_ka\n  \n  real&lt;lower = 0&gt; lkj_df_omega;   // Prior degrees of freedom for omega cor mat\n  \n  real&lt;lower = 0&gt; scale_sigma_p;  // Prior Scale parameter for proportional error\n  real&lt;lower = 0&gt; scale_sigma_a;  // Prior Scale parameter for additive error\n  \n  real&lt;lower = 0&gt; lkj_df_sigma;   // Prior degrees of freedom for sigma cor mat\n  \n  int&lt;lower = 0, upper = 1&gt; prior_only; // Want to simulate from the prior?\n  int&lt;lower = 0, upper = prior_only&gt; no_gq_predictions; // Leave out PREDS and IPREDS in \n                                                        // generated quantities. Useful\n                                                        // for simulating prior parameters\n                                                        // but don't want prior predictions\n \n}\ntransformed data{ \n  \n  int grainsize = 1;\n  \n  vector&lt;lower = 0&gt;[n_obs] dv_obs = dv[i_obs];\n  array[n_obs] int dv_obs_id = ID[i_obs];\n  \n  vector[n_obs] lloq_obs = lloq[i_obs];\n  array[n_obs] int bloq_obs = bloq[i_obs];\n  \n  int n_random = 3;                    // Number of random effects\n  int n_cmt = 2;                       // Number of states in the ODEs\n  \n  array[n_random] real scale_omega = {scale_omega_cl, scale_omega_vc, \n                                      scale_omega_ka}; \n                                      \n  array[2] real scale_sigma = {scale_sigma_p, scale_sigma_a};\n  \n  array[n_subjects] int seq_subj = linspaced_int_array(n_subjects, 1, n_subjects); // reduce_sum over subjects\n  \n  array[n_cmt] real bioav = rep_array(1.0, n_cmt); // Hardcoding, but could be data or a parameter in another situation\n  array[n_cmt] real tlag = rep_array(0.0, n_cmt);\n  \n}\nparameters{ \n  \n  real&lt;lower = 0&gt; TVCL;       \n  real&lt;lower = 0&gt; TVVC; \n  real&lt;lower = TVCL/TVVC&gt; TVKA;\n  \n  real theta_cl_wt;\n  real theta_vc_wt;\n  real theta_ka_cmppi;\n  real theta_cl_egfr;\n  real theta_vc_race2;\n  real theta_vc_race3;\n  real theta_vc_race4;\n  \n  vector&lt;lower = 0&gt;[n_random] omega;\n  cholesky_factor_corr[n_random] L;\n  \n  vector&lt;lower = 0&gt;[2] sigma;\n  cholesky_factor_corr[2] L_Sigma;\n  \n  matrix[n_random, n_subjects] Z;\n  \n}\ntransformed parameters{\n  \n  vector[n_subjects] eta_cl;\n  vector[n_subjects] eta_vc;\n  vector[n_subjects] eta_ka;\n  vector[n_subjects] CL;\n  vector[n_subjects] VC;\n  vector[n_subjects] KA;\n  vector[n_subjects] KE;\n  \n  real&lt;lower = 0&gt; sigma_p = sigma[1];\n  real&lt;lower = 0&gt; sigma_a = sigma[2];\n  \n  real&lt;lower = 0&gt; sigma_sq_p = square(sigma_p);\n  real&lt;lower = 0&gt; sigma_sq_a = square(sigma_a);\n  \n  real cor_p_a;\n  real sigma_p_a;\n\n  {\n  \n    row_vector[n_random] typical_values = to_row_vector({TVCL, TVVC, TVKA});\n\n    matrix[n_subjects, n_random] eta = diag_pre_multiply(omega, L * Z)';\n\n    matrix[n_subjects, n_random] theta =\n                          (rep_matrix(typical_values, n_subjects) .* exp(eta));\n                          \n    vector[n_races] theta_vc_race = [0, theta_vc_race2, theta_vc_race3, \n                                     theta_vc_race4]';\n                                     \n    matrix[2, 2] R_Sigma = multiply_lower_tri_self_transpose(L_Sigma);\n    matrix[2, 2] Sigma = quad_form_diag(R_Sigma, sigma);\n    \n    eta_cl = col(eta, 1);\n    eta_vc = col(eta, 2);\n    eta_ka = col(eta, 3);\n    \n    cor_p_a = R_Sigma[1, 2];\n    sigma_p_a = Sigma[1, 2];\n    \n    for(j in 1:n_subjects){\n      \n      real wt_over_70 = wt[j]/70;\n      real wt_adjustment_cl = wt_over_70^theta_cl_wt;\n      real wt_adjustment_vc = wt_over_70^theta_vc_wt;\n      real cmppi_adjustment_ka = exp(theta_ka_cmppi*cmppi[j]);\n      real egfr_adjustment_cl = (egfr[j]/90)^theta_cl_egfr;\n      real race_adjustment_vc = exp(theta_vc_race[race[j]]);\n      \n      row_vector[n_random] theta_j = theta[j]; // access the parameters for subject j\n      CL[j] = theta_j[1] * wt_adjustment_cl * egfr_adjustment_cl;\n      VC[j] = theta_j[2] * wt_adjustment_vc * race_adjustment_vc;\n      KA[j] = theta_j[3] * cmppi_adjustment_ka;\n      KE[j] = CL[j]/VC[j];\n      \n    }\n  \n  }\n  \n}\nmodel{ \n  \n  // Priors\n  TVCL ~ lognormal(log(location_tvcl), scale_tvcl);\n  TVVC ~ lognormal(log(location_tvvc), scale_tvvc);\n  TVKA ~ lognormal(log(location_tvka), scale_tvka) T[TVCL/TVVC, ];\n  \n  theta_cl_wt ~ std_normal();\n  theta_vc_wt ~ std_normal();\n  theta_ka_cmppi ~ std_normal();\n  theta_cl_egfr ~ std_normal();\n  theta_vc_race2 ~ std_normal();\n  theta_vc_race3 ~ std_normal();\n  theta_vc_race4 ~ std_normal();\n\n  omega ~ normal(0, scale_omega);\n  L ~ lkj_corr_cholesky(lkj_df_omega);\n  \n  sigma ~ normal(0, scale_sigma);\n  L_Sigma ~ lkj_corr_cholesky(lkj_df_sigma);\n  \n  to_vector(Z) ~ std_normal();\n  \n  // Likelihood\n  if(prior_only == 0){\n    target += reduce_sum(partial_sum_lupmf, seq_subj, grainsize,\n                         dv_obs, dv_obs_id, i_obs,\n                         amt, cmt, evid, time, \n                         rate, ii, addl, ss, subj_start, subj_end, \n                         CL, VC, KA,\n                         sigma_sq_p, sigma_sq_a, sigma_p_a, \n                         lloq, bloq,\n                         n_random, n_subjects, n_total,\n                         bioav, tlag, n_cmt);\n  }\n}\ngenerated quantities{\n  \n  real&lt;lower = 0&gt; omega_cl = omega[1];\n  real&lt;lower = 0&gt; omega_vc = omega[2];\n  real&lt;lower = 0&gt; omega_ka = omega[3];\n\n  real&lt;lower = 0&gt; omega_sq_cl = square(omega_cl);\n  real&lt;lower = 0&gt; omega_sq_vc = square(omega_vc);\n  real&lt;lower = 0&gt; omega_sq_ka = square(omega_ka);\n\n  real cor_cl_vc;\n  real cor_cl_ka;\n  real cor_vc_ka;\n  real omega_cl_vc;\n  real omega_cl_ka;\n  real omega_vc_ka;\n\n  vector[no_gq_predictions ? 0 : n_obs] pred;\n  vector[no_gq_predictions ? 0 : n_obs] epred_stan;\n  vector[no_gq_predictions ? 0 : n_obs] ipred;\n  vector[no_gq_predictions ? 0 : n_obs] epred;\n  vector[no_gq_predictions ? 0 : n_obs] dv_ppc;\n  vector[no_gq_predictions ? 0 : n_obs] log_lik;\n  vector[no_gq_predictions ? 0 : n_obs] iwres;\n \n  {\n    \n    matrix[n_random, n_random] R = multiply_lower_tri_self_transpose(L);\n    matrix[n_random, n_random] Omega = quad_form_diag(R, omega);\n\n    cor_cl_vc = R[1, 2];\n    cor_cl_ka = R[1, 3];\n    cor_vc_ka = R[2, 3];\n\n    omega_cl_vc = Omega[1, 2];\n    omega_cl_ka = Omega[1, 3];\n    omega_vc_ka = Omega[2, 3];\n    \n  }\n  \n  if(no_gq_predictions == 0){\n    \n    vector[n_subjects] CL_new;\n    vector[n_subjects] VC_new;\n    vector[n_subjects] KA_new;\n    vector[n_subjects] KE_new;\n    \n    vector[n_total] dv_pred;\n    matrix[n_total, n_cmt] x_pred;\n    vector[n_total] dv_epred;\n    matrix[n_total, n_cmt] x_epred;\n    vector[n_total] dv_ipred;\n    matrix[n_total, n_cmt] x_ipred;\n    \n    matrix[n_subjects, n_random] eta_new;\n    matrix[n_subjects, n_random] theta_new;\n    \n    vector[n_races] theta_vc_race = [0, theta_vc_race2, theta_vc_race3, \n                                     theta_vc_race4]';\n    \n    for(i in 1:n_subjects){\n      eta_new[i, ] = multi_normal_cholesky_rng(rep_vector(0, n_random),\n                                               diag_pre_multiply(omega, L))';\n    }\n    theta_new = (rep_matrix(to_row_vector({TVCL, TVVC, TVKA}), n_subjects) .* exp(eta_new));\n\n    for(j in 1:n_subjects){\n    \n      real wt_over_70 = wt[j]/70;\n      real wt_adjustment_cl = wt_over_70^theta_cl_wt;\n      real wt_adjustment_vc = wt_over_70^theta_vc_wt;\n      real cmppi_adjustment_ka = exp(theta_ka_cmppi*cmppi[j]);\n      real egfr_adjustment_cl = (egfr[j]/90)^theta_cl_egfr;\n      real race_adjustment_vc = exp(theta_vc_race[race[j]]);\n      \n      row_vector[n_random] theta_j_new = theta_new[j]; // access the parameters for subject j\n      CL_new[j] = theta_j_new[1] * wt_adjustment_cl * egfr_adjustment_cl;\n      VC_new[j] = theta_j_new[2] * wt_adjustment_vc * race_adjustment_vc;\n      KA_new[j] = theta_j_new[3] * cmppi_adjustment_ka;\n      KE_new[j] = CL_new[j]/VC_new[j];\n      \n      real cl_p = TVCL * wt_adjustment_cl * egfr_adjustment_cl;\n      real vc_p = TVVC * wt_adjustment_vc * race_adjustment_vc;\n      real ka_p = TVKA * cmppi_adjustment_ka;\n    \n      matrix[n_cmt, n_cmt] K = rep_matrix(0, n_cmt, n_cmt);\n      matrix[n_cmt, n_cmt] K_epred = rep_matrix(0, n_cmt, n_cmt);\n      matrix[n_cmt, n_cmt] K_p = rep_matrix(0, n_cmt, n_cmt);\n      \n      K[1, 1] = -KA[j];\n      K[2, 1] = KA[j];\n      K[2, 2] = -KE[j];\n      \n      x_ipred[subj_start[j]:subj_end[j], ] =\n        pmx_solve_linode(time[subj_start[j]:subj_end[j]],\n                         amt[subj_start[j]:subj_end[j]],\n                         rate[subj_start[j]:subj_end[j]],\n                         ii[subj_start[j]:subj_end[j]],\n                         evid[subj_start[j]:subj_end[j]],\n                         cmt[subj_start[j]:subj_end[j]],\n                         addl[subj_start[j]:subj_end[j]],\n                         ss[subj_start[j]:subj_end[j]],\n                         K, bioav, tlag)';\n                         \n      K_epred[1, 1] = -KA_new[j];\n      K_epred[2, 1] = KA_new[j];\n      K_epred[2, 2] = -KE_new[j];\n      \n      x_epred[subj_start[j]:subj_end[j], ] =\n        pmx_solve_linode(time[subj_start[j]:subj_end[j]],\n                         amt[subj_start[j]:subj_end[j]],\n                         rate[subj_start[j]:subj_end[j]],\n                         ii[subj_start[j]:subj_end[j]],\n                         evid[subj_start[j]:subj_end[j]],\n                         cmt[subj_start[j]:subj_end[j]],\n                         addl[subj_start[j]:subj_end[j]],\n                         ss[subj_start[j]:subj_end[j]],\n                         K_epred, bioav, tlag)';\n                         \n      K_p[1, 1] = -ka_p;\n      K_p[2, 1] = ka_p;\n      K_p[2, 2] = -cl_p/vc_p;\n\n      x_pred[subj_start[j]:subj_end[j],] =\n        pmx_solve_linode(time[subj_start[j]:subj_end[j]],\n                         amt[subj_start[j]:subj_end[j]],\n                         rate[subj_start[j]:subj_end[j]],\n                         ii[subj_start[j]:subj_end[j]],\n                         evid[subj_start[j]:subj_end[j]],\n                         cmt[subj_start[j]:subj_end[j]],\n                         addl[subj_start[j]:subj_end[j]],\n                         ss[subj_start[j]:subj_end[j]],\n                         K_p, bioav, tlag)';\n      \n      dv_ipred[subj_start[j]:subj_end[j]] =\n        x_ipred[subj_start[j]:subj_end[j], 2] ./ VC[j];\n        \n      dv_epred[subj_start[j]:subj_end[j]] =\n        x_epred[subj_start[j]:subj_end[j], 2] ./ VC_new[j];\n      \n      dv_pred[subj_start[j]:subj_end[j]] =\n        x_pred[subj_start[j]:subj_end[j], 2] ./ vc_p;\n      \n    }\n\n    pred = dv_pred[i_obs];\n    epred_stan = dv_epred[i_obs];\n    ipred = dv_ipred[i_obs];\n\n    for(i in 1:n_obs){\n      real ipred_tmp = ipred[i];\n      real sigma_tmp = sqrt(square(ipred_tmp) * sigma_sq_p + sigma_sq_a + \n                            2*ipred_tmp*sigma_p_a);\n      real epred_tmp = epred_stan[i];\n      real sigma_tmp_e = sqrt(square(epred_tmp) * sigma_sq_p + sigma_sq_a + \n                              2*epred_tmp*sigma_p_a);\n      dv_ppc[i] = normal_lb_rng(ipred_tmp, sigma_tmp, 0.0);\n      epred[i] = normal_lb_rng(epred_tmp, sigma_tmp_e, 0.0);\n      if(bloq_obs[i] == 1){\n        // log_lik[i] = log(normal_cdf(lloq_obs[i] | ipred_tmp, sigma_tmp) -\n        //                  normal_cdf(0.0 | ipred_tmp, sigma_tmp)) -\n        //              normal_lccdf(0.0 | ipred_tmp, sigma_tmp);\n        log_lik[i] = log_diff_exp(normal_lcdf(lloq_obs[i] | ipred_tmp, sigma_tmp),\n                                  normal_lcdf(0.0 | ipred_tmp, sigma_tmp)) -\n                     normal_lccdf(0.0 | ipred_tmp, sigma_tmp);\n      }else{\n        log_lik[i] = normal_lpdf(dv_obs[i] | ipred_tmp, sigma_tmp) -\n                     normal_lccdf(0.0 | ipred_tmp, sigma_tmp);\n      }\n      iwres[i] = (dv_obs[i] - ipred_tmp)/sigma_tmp;\n    }\n  }\n}",
+    "crumbs": [
+      "How-To",
+      "Fit",
+      "Fitting a Model"
+    ]
+  },
+  {
+    "objectID": "Content/How_To/Fit/fitting_a_model.html#fit-and-save-fitted-object",
+    "href": "Content/How_To/Fit/fitting_a_model.html#fit-and-save-fitted-object",
+    "title": "Fitting a Model",
+    "section": "4 Fit and Save Fitted Object",
+    "text": "4 Fit and Save Fitted Object\n\n\n\nCode\nmodel &lt;- cmdstan_model(here::here(\"Stan/Fit/depot_1cmt_ppa_covariates.stan\"),\n                       cpp_options = list(stan_threads = TRUE))\n\nstan_data &lt;- list(n_subjects = n_subjects,\n                  n_total = n_total,\n                  n_obs = n_obs,\n                  i_obs = i_obs,\n                  ID = nonmem_data$ID,\n                  amt = nonmem_data$amt,\n                  cmt = nonmem_data$cmt,\n                  evid = nonmem_data$evid,\n                  rate = nonmem_data$rate,\n                  ii = nonmem_data$ii,\n                  addl = nonmem_data$addl,\n                  ss = nonmem_data$ss,\n                  time = nonmem_data$time,\n                  dv = nonmem_data$DV,\n                  subj_start = subj_start,\n                  subj_end = subj_end,\n                  wt = wt,\n                  cmppi = cmppi,\n                  egfr = egfr,\n                  n_races = n_races,\n                  race = race,\n                  lloq = nonmem_data$lloq,\n                  bloq = nonmem_data$bloq,\n                  location_tvcl = 0.5,\n                  location_tvvc = 4,\n                  location_tvka = 0.8,\n                  scale_tvcl = 1,\n                  scale_tvvc = 1,\n                  scale_tvka = 1,\n                  scale_omega_cl = 0.4,\n                  scale_omega_vc = 0.4,\n                  scale_omega_ka = 0.4,\n                  lkj_df_omega = 2,\n                  scale_sigma_p = 0.5,\n                  scale_sigma_a = 0.5,\n                  lkj_df_sigma = 2,\n                  prior_only = 0,\n                  no_gq_predictions = 0) \n\nfit &lt;- model$sample(data = stan_data,\n                    seed = 112358,\n                    chains = 4,\n                    parallel_chains = 4,\n                    threads_per_chain = parallel::detectCores()/4,\n                    iter_warmup = 500,\n                    iter_sampling = 1000,\n                    adapt_delta = 0.8,\n                    refresh = 500,\n                    max_treedepth = 10,\n                    # output_dir = \"depot_1cmt_linear_covariates/Stan/Fits/Output\",\n                    # output_basename = \"ppa_covariates\",\n                    init = function() list(TVCL = rlnorm(1, log(1), 0.3),\n                                           TVVC = rlnorm(1, log(8), 0.3),\n                                           TVKA = rlnorm(1, log(0.8), 0.3),\n                                           theta_cl_wt = rnorm(1, 0, 0.2),\n                                           theta_vc_wt = rnorm(1, 0, 0.2),\n                                           theta_ka_cmppi = rnorm(1, 0, 0.2),\n                                           theta_cl_egfr = rnorm(1, 0, 0.2),\n                                           theta_vc_race2 = rnorm(1, 0, 0.2),\n                                           theta_vc_race3 = rnorm(1, 0, 0.2),\n                                           theta_vc_race4 = rnorm(1, 0, 0.2),\n                                           omega = rlnorm(3, log(0.3), 0.3),\n                                           sigma = rlnorm(2, log(0.2), 0.3)))\n\nfit$save_object(\n  \"Stan/Fits/depot_1cmt_ppa_covariates.rds\")\n\nfit$save_data_file(dir = \"Stan/Fits/Stan_Data\",\n                   basename = \"ppa_covariates\", timestamp = FALSE, \n                   random = FALSE)",
+    "crumbs": [
+      "How-To",
+      "Fit",
+      "Fitting a Model"
+    ]
+  },
+  {
+    "objectID": "Content/How_To/cross_validation.html",
+    "href": "Content/How_To/cross_validation.html",
+    "title": "Cross-Validation",
+    "section": "",
+    "text": "Leave-one-out cross-validation\nLeave-one-group-out cross-validation\n\n\n\n\n Back to top",
+    "crumbs": [
+      "How-To",
+      "Cross-Validation"
+    ]
+  },
+  {
+    "objectID": "Content/How_To/make_predictions.html",
+    "href": "Content/How_To/make_predictions.html",
+    "title": "Make Predictions",
+    "section": "",
+    "text": "This section is meant to show how to:\n\nMake predictions for already-observed subjects.\nMake predictions for potential future subjects and simulate new subjects/trials.\n\n\n\n\n Back to top",
+    "crumbs": [
+      "How-To",
+      "Make Predictions"
+    ]
+  },
+  {
+    "objectID": "Content/How_To/Predict/predict_new_subjects.html",
+    "href": "Content/How_To/Predict/predict_new_subjects.html",
+    "title": "Predict/Simulate New Subjects",
+    "section": "",
+    "text": "Stay tuned!\n\n\n\n Back to top",
+    "crumbs": [
+      "How-To",
+      "Make Predictions",
+      "Predict/Simulate New Subjects"
+    ]
+  },
+  {
+    "objectID": "Content/How_To/post_process.html",
+    "href": "Content/How_To/post_process.html",
+    "title": "Post-Processing the Posterior",
+    "section": "",
+    "text": "After fitting a model to your data, there are tons of things you can do in your analysis with the posterior distribution. In this section we go through:\n\nMCMC diagnostics\nModel diagnostics\nPosterior Summaries\nComparing the prior and the posterior\n\n\n\n\n Back to top",
+    "crumbs": [
+      "How-To",
+      "Post-Process"
+    ]
+  },
+  {
+    "objectID": "Content/Tutorials/Stan/within_chain_parallelization.html",
+    "href": "Content/Tutorials/Stan/within_chain_parallelization.html",
+    "title": "Within Chain Parallelization",
+    "section": "",
+    "text": "Stay tuned! If you just can’t wait and really need to read about within-chain parallelization now, see this paper.\n\n\n\n Back to top",
+    "crumbs": [
+      "Tutorials",
+      "Stan",
+      "Within-chain Parallelization"
+    ]
+  },
+  {
+    "objectID": "Content/Tutorials/Workflow/prior_predictive_checks.html",
+    "href": "Content/Tutorials/Workflow/prior_predictive_checks.html",
+    "title": "Prior Predictive Checks",
+    "section": "",
+    "text": "Stay tuned!\n\n\n\n Back to top",
+    "crumbs": [
+      "Tutorials",
+      "Workflow",
+      "Prior Predictive Checks"
+    ]
   },
   {
     "objectID": "Content/Reference/reference.html",
     "href": "Content/Reference/reference.html",
     "title": "References",
     "section": "",
-    "text": "Here are some references.\n\n\n\n Back to top"
+    "text": "Here are some references. This is very non-comprehensive, and I’ll add some every now and then and hopefully organize it into meaningful sections at some point.\n\nBayesian Data Analysis\nStatistical Rethinking\nRegression and Other Stories\nJose Storopoli’s slides on Bayesian Statistics\nStan Discourse\nBayesian Modeling and Computation in Python\nWithin-chain parallelization-Giving Stan Jet Fuel for population modeling in pharmacometrics\n\n\n\n\n Back to top",
+    "crumbs": [
+      "Reference",
+      "References"
+    ]
   }
 ]
